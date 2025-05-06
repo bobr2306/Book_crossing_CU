@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, Column, ForeignKey, Enum, DateTime
+from sqlalchemy import Integer, String, Column, ForeignKey, Enum, DateTime, func
 from backend.src.database import Base
 from sqlalchemy.orm import relationship
 
@@ -7,6 +7,7 @@ class Book(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     author = Column(String, nullable=False)
+    category = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     year = Column(Integer)
     # relations
@@ -35,7 +36,8 @@ class Review(Base):
     text = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
-    date = Column(DateTime, nullable=False)
+    date = Column(DateTime, default=func.now(), nullable=False)
+
     # relations
     user = relationship("User", backref="reviews")
     book = relationship("Book", backref="reviews")
@@ -68,7 +70,7 @@ class TransactionItem(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
     transaction_id = Column(Integer, primary_key=True, index=True)
-    date = Column(DateTime, nullable=False)
+    date = Column(DateTime, default=func.now(), nullable=False)
     from_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     to_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     place = Column(String, nullable=False)
