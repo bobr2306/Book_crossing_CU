@@ -1,4 +1,4 @@
 from flask import request, jsonify
 
-def collections_routes(app):
+def transactions_routes(app):
     pass
