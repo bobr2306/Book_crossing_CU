@@ -1,4 +1,5 @@
 flask
 sqlalchemy
 pytest
+pytest-mock
 flask_bcrypt
