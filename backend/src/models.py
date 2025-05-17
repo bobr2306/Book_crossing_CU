@@ -11,11 +11,13 @@ class Book(Base):
     category = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     year = Column(Integer)
-    # relations
-    # user = relationship("User", backref="books")
-    # reviews = relationship("Review", backref="book")
-    # collection_items = relationship("CollectionItem", backref="book")
-    # transaction_items = relationship("TransactionItem", backref="book")
+
+    # relationships
+    user = relationship("User", back_populates="books")
+    reviews = relationship("Review", back_populates="book")
+    collection_items = relationship("CollectionItem", back_populates="book")
+    transaction_items = relationship("TransactionItem", back_populates="book")
+
 
 class User(Base):
     __tablename__ = "users"
@@ -23,12 +25,22 @@ class User(Base):
     username = Column(String, nullable=False)
     password = Column(String, nullable=False)
     role = Column(Enum("admin", "moderator", "user", name="user_roles"), default="user")
-    # relations
-    # books = relationship("Book", backref="user")
-    # reviews = relationship("Review", backref="user")
-    # collections = relationship("Collection", backref="user")
-    # sent_transactions = relationship("Transaction", foreign_keys="Transaction.from_user_id", backref="from_user")
-    # received_transactions = relationship("Transaction", foreign_keys="Transaction.to_user_id", backref="to_user")
+
+    # relationships
+    books = relationship("Book", back_populates="user")
+    reviews = relationship("Review", back_populates="user")
+    collections = relationship("Collection", back_populates="user")
+    sent_transactions = relationship(
+        "Transaction",
+        foreign_keys="Transaction.from_user_id",
+        back_populates="from_user"
+    )
+    received_transactions = relationship(
+        "Transaction",
+        foreign_keys="Transaction.to_user_id",
+        back_populates="to_user"
+    )
+
 
 class Review(Base):
     __tablename__ = "reviews"
@@ -39,43 +51,59 @@ class Review(Base):
     book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
     date = Column(DateTime, default=func.now(), nullable=False)
 
-    # relations
-    # user = relationship("User", backref="reviews")
-    # book = relationship("Book", backref="reviews")
+    # relationships
+    user = relationship("User", back_populates="reviews")
+    book = relationship("Book", back_populates="reviews")
+
 
 class CollectionItem(Base):
     __tablename__ = "collection_items"
     collection_id = Column(Integer, ForeignKey("collections.id"), primary_key=True)
     book_id = Column(Integer, ForeignKey("books.id"), primary_key=True)
-    # relations
-    # collection = relationship("Collection", backref="items")
-    # book = relationship("Book")
+
+    # relationships
+    collection = relationship("Collection", back_populates="items")
+    book = relationship("Book", back_populates="collection_items")
+
 
 class Collection(Base):
     __tablename__ = "collections"
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    # relations
-    # user = relationship("User", backref="collections")
-    # items = relationship("CollectionItem", backref="collection")
+
+    # relationships
+    user = relationship("User", back_populates="collections")
+    items = relationship("CollectionItem", back_populates="collection")
+
 
 class TransactionItem(Base):
     __tablename__ = "transaction_items"
-    id = Column(Integer, ForeignKey("transactions.id"), primary_key=True)
-    # book_id = Column(Integer, ForeignKey("books.id"), primary_key=True)
-    transaction = relationship("Transaction", backref="items")
-    # relations
-    # book = relationship("Book")
+    transaction_id = Column(Integer, ForeignKey("transactions.id"), primary_key=True)
+    book_id = Column(Integer, ForeignKey("books.id"), primary_key=True)
+
+    # relationships
+    transaction = relationship("Transaction", back_populates="items")
+    book = relationship("Book", back_populates="transaction_items")
+
 
 class Transaction(Base):
     __tablename__ = "transactions"
     id = Column(Integer, primary_key=True, index=True)
     date = Column(DateTime, default=func.now(), nullable=False)
-    # from_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    # to_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    from_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    to_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     place = Column(String, nullable=False)
-    # relations
-    # from_user = relationship("User", foreign_keys=[from_user_id], backref="sent_transactions")
-    # to_user = relationship("User", foreign_keys=[to_user_id], backref="received_transactions")
-    # items = relationship("TransactionItem", backref="transaction")
+
+    # relationships
+    from_user = relationship(
+        "User",
+        foreign_keys=[from_user_id],
+        back_populates="sent_transactions"
+    )
+    to_user = relationship(
+        "User",
+        foreign_keys=[to_user_id],
+        back_populates="received_transactions"
+    )
+    items = relationship("TransactionItem", back_populates="transaction")

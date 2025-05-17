@@ -1,6 +1,8 @@
 from flask import jsonify, request
 from backend.src.crud import create_book, get_books, get_book, update_book, delete_book
 from backend.src.database import SessionLocal
+from backend.src import schemas
+
 
 def get_db():
     db = SessionLocal()
@@ -22,16 +24,33 @@ def books_routes(app):
         user_id = request.args.get('user_id')
         skip = int(request.args.get('skip', 0))
         limit = int(request.args.get('limit', 100))
-        books = get_books(db, skip=skip, limit=limit, category=category, author=author, user_id=user_id)
-        return jsonify([book.__dict__ for book in books])
-
+        try:
+            books = get_books(db, skip=skip, limit=limit, category=category, author=author, user_id=user_id)
+            books_data = [{
+                'title': book.title,
+                'author': book.author,
+                'category': book.category,
+                'user_id': book.user_id,
+                'year': book.year
+            } for book in books]
+            return jsonify(books_data)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
     @app.route('/books/<int:book_id>', methods=['GET'])
     def get_book_route(book_id):
         db = next(get_db())
         try:
             book = get_book(db, book_id)
-            return jsonify(book.__dict__)
+            book_data = {
+                'id': book.id,
+                'title': book.title,
+                'author': book.author,
+                'category': book.category,
+                'user_id': book.user_id,
+                'year': book.year
+            }
+            return jsonify(book_data)
         except ValueError as e:
             return jsonify({'error': str(e)}), 404
 
@@ -39,8 +58,8 @@ def books_routes(app):
     @app.route('/books', methods=['POST'])
     def create_book_route():
         db = next(get_db())
-        data = request.get_json()
         try:
+            data = schemas.validate_book(request.get_json())
             book = create_book(db, data)
             return jsonify({
                 'id': book.id,
@@ -51,6 +70,8 @@ def books_routes(app):
             }), 201
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
     @app.route('/books/<int:book_id>', methods=['PUT'])
     def update_book_route(book_id):

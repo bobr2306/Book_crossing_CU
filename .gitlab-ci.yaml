@@ -12,4 +12,4 @@ test-python-app:
   tags:
     - students-buildkit-medium
   script:
-    - pytest -s -v backend/tests/test_unit.py
+    - pytest -s -v backend/tests/test_unit_books.py
