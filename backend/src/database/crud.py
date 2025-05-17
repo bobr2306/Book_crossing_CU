@@ -1,6 +1,7 @@
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from backend.src import models
+from backend.src.database import models
+
 
 # Books
 def create_book(db: Session, book: dict):

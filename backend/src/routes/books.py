@@ -1,15 +1,9 @@
 from flask import jsonify, request
-from backend.src.crud import create_book, get_books, get_book, update_book, delete_book
-from backend.src.database import SessionLocal
-from backend.src import schemas
+from backend.src.database.crud import create_book, get_books, get_book, update_book, delete_book
+from backend.src.database.database import get_db
+from backend.src.database import schemas
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 def books_routes(app):
     @app.errorhandler(Exception)

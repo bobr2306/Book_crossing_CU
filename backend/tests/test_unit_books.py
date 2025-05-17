@@ -1,7 +1,7 @@
 import pytest
 import json
 from flask import Flask
-from backend.src.models import Book
+from backend.src.database.models import Book
 from backend.src.init_routes import init_routes
 from unittest.mock import MagicMock
 
@@ -32,7 +32,7 @@ def db_session(mocker):
 
 @pytest.fixture(autouse=True)
 def mock_get_db_session(mocker, db_session):
-    mocker.patch("backend.src.routes.books.get_db", return_value=db_session)
+    mocker.patch("backend.src.database.database.get_db", return_value=db_session)
 
 def test_create_book_success(client, mocker):
     book_data = {

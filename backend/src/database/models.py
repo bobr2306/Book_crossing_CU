@@ -1,6 +1,6 @@
 from sqlalchemy import Integer, String, Column, ForeignKey, Enum, DateTime, func
 from sqlalchemy.orm import relationship
-from backend.src.database import Base
+from backend.src.database.database import Base
 
 
 class Book(Base):
@@ -23,7 +23,7 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, nullable=False)
-    password = Column(String, nullable=False)
+    password = Column(String(255), nullable=False)
     role = Column(Enum("admin", "moderator", "user", name="user_roles"), default="user")
 
     # relationships
