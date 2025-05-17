@@ -71,6 +71,8 @@ def create_user(db: Session, user: dict):
 def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.User).offset(skip).limit(limit).all()
 
+def get_user_by_name(db: Session, name: str):
+    return db.query(models.User).filter(models.User.username == name).first()
 
 def get_user(db: Session, user_id: int):
     return db.query(models.User).filter(models.User.id == user_id).first()

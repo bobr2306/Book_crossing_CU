@@ -1,6 +1,4 @@
 import pytest
-import json
-import base64
 from flask import Flask
 from backend.src.database.models import User
 from backend.src.init_routes import init_routes
@@ -34,17 +32,15 @@ def mock_get_db_session(mocker, db_session):
 def test_auth(client, mocker):
     user_data = {
         "username": "Billy Herrington",
-        "password": "secret123",
-        "email": "billy@example.com"
+        "password": "secret123"
     }
 
     mock_user = MagicMock(spec=User)
     mock_user.id = 1
     mock_user.username = user_data["username"]
-    mock_user.email = user_data["email"]
 
     mocker.patch(
-        "backend.src.database.crud.create_user",
+        "backend.src.routes.users.create_user",
         return_value=mock_user
     )
     mocker.patch(
@@ -52,12 +48,49 @@ def test_auth(client, mocker):
         return_value="hashed_password"
     )
 
-    # Отправляем запрос
     response = client.post(
         '/register',
         json=user_data,
     )
-    print(response.json)
     assert response.status_code == 201
-    assert response.json["id"] == 1
     assert response.json["username"] == "Billy Herrington"
+
+
+def test_login_success(client, mocker):
+    login_data = {
+        "username": "test_user",
+        "password": "correct_password"
+    }
+
+    mock_user = MagicMock(spec=User)
+    mock_user.id = 1
+    mock_user.username = "test_user"
+    mock_user.password = "hashed_password"
+    mock_user.role = "user"
+
+    mocker.patch(
+        "backend.src.routes.users.get_user_by_name",
+        return_value=mock_user
+    )
+
+    mocker.patch(
+        "backend.src.routes.users.verify_password",
+        return_value=True
+    )
+
+    mocker.patch(
+        "backend.src.routes.users.create_access_token",
+        return_value="test_jwt_token"
+    )
+
+    response = client.post(
+        '/login',
+        json=login_data
+    )
+    assert response.status_code == 200
+    assert response.json == {
+        "access_token": "test_jwt_token",
+        "token_type": "bearer",
+        "user_id": 1,
+        "role": "user"
+    }

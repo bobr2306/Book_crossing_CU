@@ -1,5 +1,5 @@
 from flask import request, jsonify
-from backend.src.database.crud import create_user
+from backend.src.database.crud import create_user, get_user_by_name
 from backend.src.database.database import get_db
 from backend.src.auth_utils import (
     hash_password,
@@ -8,6 +8,9 @@ from backend.src.auth_utils import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from backend.src.database import schemas
+from datetime import timedelta
+from backend.src.database.models import User
+
 
 def users_routes(app):
     @app.route("/register", methods=["POST"])
@@ -27,29 +30,25 @@ def users_routes(app):
         return jsonify({"message": "Пользователь зарегистрирован", "username": username, "password": hashed_password}), 201
 
 
-    # @app.route("/login", methods=["POST"])
-    # def login():
-    #     data = request.get_json()
-    #     if not data or 'email' not in data or 'password' not in data:
-    #         return jsonify({'error': 'Email and password required'}), 400
-    #
-    #
-    #     db = next(get_db())
-    #     user = db.query(User).filter(User.email == data['email']).first()
-    #     db.close()
-    #
-    #     if not user or not verify_password(data['password'], user.password):
-    #         return jsonify({'error': 'Invalid credentials'}), 401
-    #
-    #     # Генерируем токен
-    #     access_token = create_access_token(
-    #         data={"sub": str(user.id)},
-    #         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    #     )
-    #
-    #     return jsonify({
-    #         "access_token": access_token,
-    #         "token_type": "bearer",
-    #         "user_id": user.id,
-    #         "role": user.role
-    #     })
+    @app.route("/login", methods=["POST"])
+    def login():
+        data = request.get_json()
+        if not data or 'username' not in data or 'password' not in data:
+            return jsonify({'error': 'Username and password required'}), 400
+        db = next(get_db())
+        user = get_user_by_name(db, data["username"])
+
+        if not user or not verify_password(data['password'], user.password):
+            return jsonify({'error': 'Invalid credentials'}), 401
+
+        access_token = create_access_token(
+            data={"sub": str(user.id)},
+            expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        )
+
+        return jsonify({
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user_id": user.id,
+            "role": user.role
+        })

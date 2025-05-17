@@ -2,8 +2,7 @@ from flask import jsonify, request
 from backend.src.database.crud import create_book, get_books, get_book, update_book, delete_book
 from backend.src.database.database import get_db
 from backend.src.database import schemas
-
-
+from backend.src.auth import auth_required
 
 def books_routes(app):
     @app.errorhandler(Exception)
@@ -11,6 +10,7 @@ def books_routes(app):
         return jsonify({'error': str(e)}), 500
 
     @app.route('/books', methods=['GET'])
+    @auth_required
     def get_books_route():
         db = next(get_db())
         category = request.args.get('category')
@@ -32,6 +32,7 @@ def books_routes(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/books/<int:book_id>', methods=['GET'])
+    @auth_required
     def get_book_route(book_id):
         db = next(get_db())
         try:
@@ -50,6 +51,7 @@ def books_routes(app):
 
 
     @app.route('/books', methods=['POST'])
+    @auth_required
     def create_book_route():
         db = next(get_db())
         try:
@@ -68,6 +70,7 @@ def books_routes(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/books/<int:book_id>', methods=['PUT'])
+    @auth_required
     def update_book_route(book_id):
         db = next(get_db())
         data = request.get_json()
@@ -78,6 +81,7 @@ def books_routes(app):
             return jsonify({'error': str(e)}), 400
 
     @app.route('/books/<int:book_id>', methods=['DELETE'])
+    @auth_required
     def delete_book_route(book_id):
         db = next(get_db())
         try:
