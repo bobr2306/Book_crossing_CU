@@ -1,6 +1,8 @@
+from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from backend.src.database import models
+from backend.src.database.models import Collection, CollectionItem
 
 
 # Books
@@ -148,49 +150,124 @@ def delete_review(db: Session, review_id: int):
     return True
 
 # Collections
-def create_collection(db: Session, collection: dict):
-    required_fields = {"title", "user_id"}
-    if not all(field in collection for field in required_fields):
-        raise ValueError(f"Missing required fields: {required_fields - set(collection.keys())}")
+def create_collection(db: Session, collection_data: dict):
+    """Создание новой коллекции с книгами"""
+    collection = Collection(
+        title=collection_data["title"],
+        user_id=collection_data["user_id"]
+    )
+    db.add(collection)
+    db.commit()
+    db.refresh(collection)
 
-    try:
-        db_collection = models.Collection(**collection)
-        db.add(db_collection)
+    if "book_ids" in collection_data:
+        for book_id in collection_data["book_ids"]:
+            item = CollectionItem(
+                collection_id=collection.id,
+                book_id=book_id
+            )
+            db.add(item)
         db.commit()
-        db.refresh(db_collection)
-        return db_collection
-    except IntegrityError as e:
-        db.rollback()
-        raise ValueError(f"Database integrity error: {e}")
+
+    return collection
 
 
-def get_collections(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Collection).offset(skip).limit(limit).all()
+def get_collections(db: Session, skip: int = 0, limit: int = 100, user_id: int = None):
+    """Получение списка коллекций"""
+    query = db.query(Collection)
+
+    if user_id:
+        query = query.filter(Collection.user_id == user_id)
+
+    return query.offset(skip).limit(limit).all()
 
 
-def get_collection(db: Session, collection_id: int):
-    return db.query(models.Collection).filter(models.Collection.id == collection_id).first()
+def get_collection_with_items(db: Session, collection_id: int):
+    """Получение коллекции с книгами"""
+    return db.query(Collection) \
+        .options(joinedload(Collection.items)
+                 .joinedload(CollectionItem.book)) \
+        .filter(Collection.id == collection_id) \
+        .first()
 
 
-def update_collection(db: Session, collection_id: int, collection: dict):
-    db_collection = get_collection(db, collection_id)
-    if not db_collection:
+def update_collection(db: Session, collection_id: int, update_data: dict):
+    """Обновление коллекции"""
+    collection = db.query(Collection).filter(Collection.id == collection_id).first()
+    if not collection:
         return None
 
-    for key, value in collection.items():
-        if hasattr(db_collection, key):
-            setattr(db_collection, key, value)
+    if "title" in update_data:
+        collection.title = update_data["title"]
+
+    if "book_ids" in update_data:
+        # Удаляем старые связи
+        db.query(CollectionItem) \
+            .filter(CollectionItem.collection_id == collection_id) \
+            .delete()
+
+        # Добавляем новые
+        for book_id in update_data["book_ids"]:
+            item = CollectionItem(
+                collection_id=collection.id,
+                book_id=book_id
+            )
+            db.add(item)
+
     db.commit()
-    db.refresh(db_collection)
-    return db_collection
+    db.refresh(collection)
+    return collection
 
 
 def delete_collection(db: Session, collection_id: int):
-    db_collection = get_collection(db, collection_id)
-    if not db_collection:
+    """Удаление коллекции"""
+    collection = db.query(Collection).filter(Collection.id == collection_id).first()
+    if not collection:
         return False
 
-    db.delete(db_collection)
+    db.delete(collection)
+    db.commit()
+    return True
+
+
+def add_books_to_collection(db: Session, collection_id: int, book_ids: list[int]):
+    """Добавление книг в коллекцию"""
+    collection = db.query(Collection).filter(Collection.id == collection_id).first()
+    if not collection:
+        return None
+
+    for book_id in book_ids:
+        # Проверяем, нет ли уже такой связи
+        exists = db.query(CollectionItem) \
+            .filter(and_(
+            CollectionItem.collection_id == collection_id,
+            CollectionItem.book_id == book_id
+        )) \
+            .first()
+        if not exists:
+            item = CollectionItem(
+                collection_id=collection_id,
+                book_id=book_id
+            )
+            db.add(item)
+
+    db.commit()
+    db.refresh(collection)
+    return collection
+
+
+def remove_book_from_collection(db: Session, collection_id: int, book_id: int):
+    """Удаление книги из коллекции"""
+    item = db.query(CollectionItem) \
+        .filter(and_(
+        CollectionItem.collection_id == collection_id,
+        CollectionItem.book_id == book_id
+    )) \
+        .first()
+    if not item:
+        return False
+
+    db.delete(item)
     db.commit()
     return True
 
