@@ -62,9 +62,10 @@ services:
       - VITE_API_URL=http://backend:5000
     volumes:
       - ./frontend:/app
-      - /app/node_modules
+      - node_modules_frontend:/app/node_modules
     depends_on:
       - backend
 
 volumes:
   postgres_data:
+  node_modules_frontend:
