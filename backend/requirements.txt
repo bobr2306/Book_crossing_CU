@@ -1,0 +1,12 @@
+flask
+sqlalchemy
+pytest
+pytest-mock
+flask_bcrypt
+passlib
+jwt
+psycopg2-binary
+python-dotenv
+flask-sqlalchemy
+flask-migrate
+flask-cors
