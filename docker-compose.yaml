@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:14
@@ -11,6 +13,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   pgadmin:
     image: dpage/pgadmin4
@@ -22,23 +29,42 @@ services:
     ports:
       - "5050:80"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: flask_container
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_URL=postgresql://myuser:mypassword@postgres:5432/mydatabase
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
 
   frontend:
-    image: node:18  # Используем Node.js для React
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: react_container
-    working_dir: /app
-    volumes:
-      - ./frontend:/app  # Монтируем локальную папку с React-приложением
-    ports:
-      - "3000:3000"  # React по умолчанию работает на порту 3000
-    environment:
-      - NODE_ENV=development  # Режим разработки
-    command: >
-      sh -c "npm install && npm start"  # Устанавливаем зависимости и запускаем приложение
-    depends_on:
-      - postgres
     restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://backend:5000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
