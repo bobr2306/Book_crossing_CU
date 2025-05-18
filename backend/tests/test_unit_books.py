@@ -2,8 +2,8 @@ import pytest
 import json
 import os
 from flask import Flask
-from backend.src.database.models import Book, User
-from backend.src.init_routes import init_routes
+from src.database.models import Book, User
+from src.init_routes import init_routes
 from unittest.mock import MagicMock
 
 os.environ["TESTING"] = "1"

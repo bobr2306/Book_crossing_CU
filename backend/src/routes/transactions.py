@@ -1,14 +1,14 @@
 from flask import request, jsonify
-from backend.src.database.crud import (
+from src.database.crud import (
     create_transaction,
     get_transactions,
     get_transaction,
     update_transaction,
     delete_transaction,
 )
-from backend.src.database.database import get_db
-from backend.src.auth import auth_required, role_required
-from backend.src.database.schemas import validate_transactions
+from src.database.database import get_db
+from src.auth import auth_required, role_required
+from src.database.schemas import validate_transactions
 
 
 def transactions_routes(app):
@@ -19,7 +19,7 @@ def transactions_routes(app):
     @app.route('/transactions', methods=['GET'])
     @auth_required
     def get_transactions_route():
-        db = next(get_db())
+        db = get_db()
         try:
             limit = int(request.args.get('limit', 100))
             skip = int(request.args.get('skip', 0))
@@ -56,7 +56,7 @@ def transactions_routes(app):
     @app.route('/transactions/<int:transaction_id>', methods=['GET'])
     @auth_required
     def get_transaction_route(transaction_id):
-        db = next(get_db())
+        db = get_db()
         try:
             transaction = get_transaction(db, transaction_id)
             if not transaction:
@@ -89,7 +89,7 @@ def transactions_routes(app):
     @app.route('/transactions', methods=['POST'])
     @auth_required
     def create_transaction_route():
-        db = next(get_db())
+        db = get_db()
         data = request.get_json()
         try:
             required_fields = ["from_user_id", "to_user_id", "book_id", "place"]
@@ -120,7 +120,7 @@ def transactions_routes(app):
     @app.route('/transactions/<int:transaction_id>', methods=['PUT'])
     @auth_required
     def update_transaction_route(transaction_id):
-        db = next(get_db())
+        db = get_db()
         data = request.get_json()
 
         try:
@@ -149,7 +149,7 @@ def transactions_routes(app):
     @auth_required
     @role_required('admin')
     def delete_transaction_route(transaction_id):
-        db = next(get_db())
+        db = get_db()
         try:
             success = delete_transaction(db, transaction_id)
             if not success:
@@ -162,7 +162,7 @@ def transactions_routes(app):
     @app.route('/transactions/<int:transaction_id>/status', methods=['PUT'])
     @auth_required
     def change_transaction_status_route(transaction_id):
-        db = next(get_db())
+        db = get_db()
         data = request.get_json()
 
         try:

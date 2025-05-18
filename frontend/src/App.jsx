@@ -1,11 +1,16 @@
 import React from 'react';
-import HomePage from './components/HomePage';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import HomePage from './Components/HomePage';
+import LoginForm from './Components/LoginForm';
 
 function App() {
     return (
-        <div className="App">
-            <HomePage />
-        </div>
+        <Router>
+            <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/login" element={<LoginForm />} />
+            </Routes>
+        </Router>
     );
 }
 

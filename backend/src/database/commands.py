@@ -1,13 +1,20 @@
 import click
-from backend.src.database.database import get_db
-from backend.src.database.models import User, Book
-from backend.src.database.crud import create_user, create_book
+from src.database.database import get_db, db
+from src.database.models import User, Book
+from src.database.crud import create_user, create_book
 
 def register_commands(app):
+    @app.cli.command("create-tables")
+    def create_tables():
+        """Создает таблицы в БД"""
+        with app.app_context():
+            db.create_all()
+            click.echo("Таблицы успешно созданы")
+
     @app.cli.command("seed-db")
     def seed_db():
         """Добавляет тестовые данные в БД"""
-        db = next(get_db())
+        db = get_db()
 
         # Создаем тестовых пользователей
         users = [

@@ -1,8 +1,8 @@
 from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
-from backend.src.database import models
-from backend.src.database.models import Collection, CollectionItem
+from src.database import models
+from src.database.models import Collection, CollectionItem
 
 
 # Books

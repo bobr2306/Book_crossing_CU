@@ -1,21 +1,21 @@
 from flask import request, jsonify
-from backend.src.database.crud import create_user, get_user_by_name
-from backend.src.database.database import get_db
-from backend.src.auth_utils import (
+from src.database.crud import create_user, get_user_by_name
+from src.database.database import get_db
+from src.auth_utils import (
     hash_password,
     verify_password,
     create_access_token,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
-from backend.src.database import schemas
+from src.database import schemas
 from datetime import timedelta
-from backend.src.database.models import User
+from src.database.models import User
 
 
 def users_routes(app):
     @app.route("/register", methods=["POST"])
     def register():
-        db = next(get_db())
+        db = get_db()
         data = request.get_json() or {}
         username = data.get("username")
         role = "user"
@@ -35,7 +35,7 @@ def users_routes(app):
         data = request.get_json()
         if not data or 'username' not in data or 'password' not in data:
             return jsonify({'error': 'Username and password required'}), 400
-        db = next(get_db())
+        db = get_db()
         user = get_user_by_name(db, data["username"])
 
         if not user or not verify_password(data['password'], user.password):

@@ -1,8 +1,8 @@
-from backend.src.routes.books import books_routes
-from backend.src.routes.reviews import reviews_routes
-from backend.src.routes.users import users_routes
-from backend.src.routes.transactions import transactions_routes
-from backend.src.routes.collections import collections_routes
+from src.routes.books import books_routes
+from src.routes.reviews import reviews_routes
+from src.routes.users import users_routes
+from src.routes.transactions import transactions_routes
+from src.routes.collections import collections_routes
 
 def init_routes(app):
     books_routes(app)

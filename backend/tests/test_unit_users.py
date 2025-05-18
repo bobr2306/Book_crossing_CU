@@ -1,7 +1,7 @@
 import pytest
 from flask import Flask
-from backend.src.database.models import User
-from backend.src.init_routes import init_routes
+from src.database.models import User
+from src.init_routes import init_routes
 from unittest.mock import MagicMock
 
 

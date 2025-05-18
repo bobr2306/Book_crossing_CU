@@ -1,6 +1,6 @@
 from flask import request, jsonify
-from backend.src.auth import auth_required
-from backend.src.database.crud import (
+from src.auth import auth_required
+from src.database.crud import (
     create_collection,
     get_collections,
     delete_collection,
@@ -9,7 +9,7 @@ from backend.src.database.crud import (
     get_collection_with_items,
     update_collection,
 )
-from backend.src.database.database import get_db
+from src.database.database import get_db
 
 
 def collections_routes(app):
@@ -20,7 +20,7 @@ def collections_routes(app):
     @app.route('/collections', methods=['GET'])
     @auth_required
     def get_collections_route():
-        db = next(get_db())
+        db = get_db()
         try:
             limit = int(request.args.get('limit', 100))
             skip = int(request.args.get('skip', 0))
@@ -43,7 +43,7 @@ def collections_routes(app):
     @app.route('/collections', methods=['POST'])
     @auth_required
     def create_collection_route():
-        db = next(get_db())
+        db = get_db()
         try:
             data = request.get_json()
             required_fields = ["title", "user_id"]
@@ -71,7 +71,7 @@ def collections_routes(app):
     @app.route('/collections/<int:collection_id>', methods=['GET'])
     @auth_required
     def get_collection_route(collection_id):
-        db = next(get_db())
+        db = get_db()
         try:
             collection = get_collection_with_items(db, collection_id)
             if not collection:
@@ -98,7 +98,7 @@ def collections_routes(app):
     @app.route('/collections/<int:collection_id>', methods=['PUT'])
     @auth_required
     def update_collection_route(collection_id):
-        db = next(get_db())
+        db = get_db()
         try:
             data = request.get_json()
             update_data = {}
@@ -127,7 +127,7 @@ def collections_routes(app):
     @app.route('/collections/<int:collection_id>', methods=['DELETE'])
     @auth_required
     def delete_collection_route(collection_id):
-        db = next(get_db())
+        db = get_db()
         try:
             success = delete_collection(db, collection_id)
             if not success:
@@ -140,7 +140,7 @@ def collections_routes(app):
     @app.route('/collections/<int:collection_id>/books', methods=['POST'])
     @auth_required
     def add_books_to_collection_route(collection_id):
-        db = next(get_db())
+        db = get_db()
         try:
             data = request.get_json()
             if "book_ids" not in data:
@@ -162,7 +162,7 @@ def collections_routes(app):
     @app.route('/collections/<int:collection_id>/books/<int:book_id>', methods=['DELETE'])
     @auth_required
     def remove_book_from_collection_route(collection_id, book_id):
-        db = next(get_db())
+        db = get_db()
         try:
             success = remove_book_from_collection(db, collection_id, book_id)
 

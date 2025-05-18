@@ -3,9 +3,9 @@ import json
 import os
 import pytest
 from datetime import datetime, timezone
-from backend.src.database.models import User, Book,  Transaction
+from src.database.models import User, Book,  Transaction
 from unittest.mock import MagicMock
-from backend.src.init_routes import init_routes
+from src.init_routes import init_routes
 
 
 os.environ["TESTING"] = "1"

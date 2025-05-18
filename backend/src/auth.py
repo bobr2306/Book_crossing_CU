@@ -3,9 +3,9 @@ from functools import wraps
 
 from flask import request, jsonify
 
-from backend.src.auth_utils import decode_token
-from backend.src.database.database import get_db
-from backend.src.database.models import User
+from src.auth_utils import decode_token
+from src.database.database import get_db
+from src.database.models import User
 
 def auth_required(f):
     @wraps(f)
@@ -25,7 +25,7 @@ def auth_required(f):
             if not user_id:
                 raise ValueError("Invalid token payload")
 
-            db = next(get_db())
+            db = get_db()
             user = db.query(User).get(int(user_id))
             db.close()
 
