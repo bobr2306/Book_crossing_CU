@@ -27,7 +27,7 @@ def validate_reviews(data):
     return data
 
 def validate_transactions(data):
-    required_fields = ["date", "from_user_id", "to_user_id", "book_id"]
+    required_fields = ["from_user_id", "to_user_id", "book_id", "place"]
     for field in required_fields:
         if field not in data or not data[field]:
             raise ValueError(f"Field '{field}' is required")

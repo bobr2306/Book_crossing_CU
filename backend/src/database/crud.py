@@ -1,5 +1,5 @@
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from backend.src.database import models
 
 
@@ -195,21 +195,111 @@ def delete_collection(db: Session, collection_id: int):
     return True
 
 # Transactions
-def create_transaction(db: Session, transaction: dict):
-    required_fields = {"from_user_id", "to_user_id", "place"}
-    if not all(field in transaction for field in required_fields):
-        raise ValueError(f"Missing required fields: {required_fields - set(transaction.keys())}")
 
-    try:
-        db_transaction = models.Transaction(**transaction)
-        db.add(db_transaction)
-        db.commit()
-        db.refresh(db_transaction)
-        return db_transaction
-    except IntegrityError as e:
-        db.rollback()
-        raise ValueError(f"Database integrity error: {e}")
+# Вариант для нескольких книг в транзакции, тяжко
+# def get_transactions(db: Session, skip: int = 0, limit: int = 100, status: str = None,
+#                      exclude_status: str = "completed"):
+#     query = db.query(models.Transaction)
+#
+#     if exclude_status:
+#         query = query.filter(models.Transaction.status != exclude_status)
+#     if status:
+#         query = query.filter(models.Transaction.status == status)
+#
+#     return query.offset(skip).limit(limit).all()
+#
+#
+# def create_transaction(db: Session, transaction_data: dict, book_ids: list[int]):
+#     # Создаем саму транзакцию
+#     db_transaction = models.Transaction(**transaction_data)
+#     db.add(db_transaction)
+#     db.commit()
+#     db.refresh(db_transaction)
+#
+#     # Добавляем книги в транзакцию
+#     for book_id in book_ids:
+#         transaction_item = models.TransactionItem(
+#             transaction_id=db_transaction.id,
+#             book_id=book_id
+#         )
+#         db.add(transaction_item)
+#
+#     db.commit()
+#     return db_transaction
+#
+#
+# def get_transaction_with_items(db: Session, transaction_id: int):
+#     return db.query(models.Transaction) \
+#         .options(joinedload(models.Transaction.items)
+#                  .joinedload(models.TransactionItem.book)) \
+#         .filter(models.Transaction.id == transaction_id) \
+#         .first()
+
+def get_transactions(
+        db: Session,
+        skip: int = 0,
+        limit: int = 100,
+        status: str = None,
+        user_id: int = None,
+        book_id: int = None,
+        exclude_status: str = None
+):
+    query = db.query(models.Transaction)
+
+    if status:
+        query = query.filter(models.Transaction.status == status)
+    if exclude_status:
+        query = query.filter(models.Transaction.status != exclude_status)
+    if user_id:
+        query = query.filter(
+            (models.Transaction.from_user_id == user_id) |
+            (models.Transaction.to_user_id == user_id)
+        )
+    if book_id:
+        query = query.filter(models.Transaction.book_id == book_id)
+
+    return query.order_by(models.Transaction.date.desc()) \
+        .offset(skip).limit(limit) \
+        .all()
 
 
-def get_transactions(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Transaction).offset(skip).limit(limit).all()
+def get_transaction(db: Session, transaction_id: int):
+    return db.query(models.Transaction) \
+        .options(
+        joinedload(models.Transaction.from_user),
+        joinedload(models.Transaction.to_user),
+        joinedload(models.Transaction.book)
+    ) \
+        .filter(models.Transaction.id == transaction_id) \
+        .first()
+
+
+def create_transaction(db: Session, transaction_data: dict):
+    db_transaction = models.Transaction(**transaction_data)
+    db.add(db_transaction)
+    db.commit()
+    db.refresh(db_transaction)
+    return db_transaction
+
+
+def update_transaction(db: Session, transaction_id: int, update_data: dict):
+    db_transaction = get_transaction(db, transaction_id)
+    if not db_transaction:
+        return None
+
+    for key, value in update_data.items():
+        setattr(db_transaction, key, value)
+
+    db.commit()
+    db.refresh(db_transaction)
+    return db_transaction
+
+
+def delete_transaction(db: Session, transaction_id: int):
+    db_transaction = get_transaction(db, transaction_id)
+    if not db_transaction:
+        return False
+
+    db.delete(db_transaction)
+    db.commit()
+    return True

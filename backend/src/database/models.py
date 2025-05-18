@@ -16,7 +16,7 @@ class Book(Base):
     user = relationship("User", back_populates="books")
     reviews = relationship("Review", back_populates="book")
     collection_items = relationship("CollectionItem", back_populates="book")
-    transaction_items = relationship("TransactionItem", back_populates="book")
+    transactions = relationship("Transaction", back_populates="book")
 
 
 class User(Base):
@@ -71,20 +71,9 @@ class Collection(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-
     # relationships
     user = relationship("User", back_populates="collections")
     items = relationship("CollectionItem", back_populates="collection")
-
-
-class TransactionItem(Base):
-    __tablename__ = "transaction_items"
-    transaction_id = Column(Integer, ForeignKey("transactions.id"), primary_key=True)
-    book_id = Column(Integer, ForeignKey("books.id"), primary_key=True)
-
-    # relationships
-    transaction = relationship("Transaction", back_populates="items")
-    book = relationship("Book", back_populates="transaction_items")
 
 
 class Transaction(Base):
@@ -93,17 +82,15 @@ class Transaction(Base):
     date = Column(DateTime, default=func.now(), nullable=False)
     from_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     to_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
     place = Column(String, nullable=False)
+    status = Column(
+        Enum("completed", "pending", "canceled", "in_progress", name="transaction_status"),
+        default="pending",
+        nullable=False
+    )
 
-    # relationships
-    from_user = relationship(
-        "User",
-        foreign_keys=[from_user_id],
-        back_populates="sent_transactions"
-    )
-    to_user = relationship(
-        "User",
-        foreign_keys=[to_user_id],
-        back_populates="received_transactions"
-    )
-    items = relationship("TransactionItem", back_populates="transaction")
+    # Relationships
+    from_user = relationship("User", foreign_keys=[from_user_id], back_populates="sent_transactions")
+    to_user = relationship("User", foreign_keys=[to_user_id], back_populates="received_transactions")
+    book = relationship("Book", back_populates="transactions")
