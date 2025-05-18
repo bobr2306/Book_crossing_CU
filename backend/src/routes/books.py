@@ -12,7 +12,7 @@ def books_routes(app):
     @app.route('/books', methods=['GET'])
     @auth_required
     def get_books_route():
-        db = get_db()
+        db = next(get_db())
         category = request.args.get('category')
         author = request.args.get('author')
         user_id = request.args.get('user_id')
@@ -34,7 +34,7 @@ def books_routes(app):
     @app.route('/books/<int:book_id>', methods=['GET'])
     @auth_required
     def get_book_route(book_id):
-        db = get_db()
+        db = next(get_db())
         try:
             book = get_book(db, book_id)
             book_data = {
@@ -53,7 +53,7 @@ def books_routes(app):
     @app.route('/books', methods=['POST'])
     @auth_required
     def create_book_route():
-        db = get_db()
+        db = next(get_db())
         try:
             data = schemas.validate_book(request.get_json())
             book = create_book(db, data)
@@ -72,7 +72,7 @@ def books_routes(app):
     @app.route('/books/<int:book_id>', methods=['PUT'])
     @auth_required
     def update_book_route(book_id):
-        db = get_db()
+        db = next(get_db())
         data = request.get_json()
         try:
             update_book(db, book_id, data)
@@ -83,7 +83,7 @@ def books_routes(app):
     @app.route('/books/<int:book_id>', methods=['DELETE'])
     @auth_required
     def delete_book_route(book_id):
-        db = get_db()
+        db = next(get_db())
         try:
             delete_book(db, book_id)
             return jsonify({'message': 'Book deleted'}), 200

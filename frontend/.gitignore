@@ -22,3 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+*.__pycache__
+__pycache__/
+*.pyc
+venv/
+.env
+.vscode/
+.idea/
+*.swp
+*.pyo
+*.pyd
+node_modules/

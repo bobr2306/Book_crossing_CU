@@ -1,17 +1,34 @@
 from flask import Flask
-from src.database.database import db
-from src.init_routes import init_routes
+from flask_cors import CORS
+from src.routes.users import users_routes
+from src.routes.books import books_routes
+from src.routes.collections import collections_routes
+from src.routes.transactions import transactions_routes
+from src.database.commands import register_commands, create_admin_user
+from src.database.database import engine
+from src.database.models import Base
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://myuser:mypassword@postgres:5432/mydatabase'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
 
-db.init_app(app)
+def init_app():
+    with app.app_context():
+        print("Создание таблиц...")
+        Base.metadata.create_all(bind=engine)
+        print("Создание администратора...")
+        try:
+            create_admin_user()
+        except Exception as e:
+            print(f"Ошибка при создании администратора: {e}")
 
-with app.app_context():
-    db.create_all()
+init_app()
 
-init_routes(app)
+users_routes(app)
+books_routes(app)
+collections_routes(app)
+transactions_routes(app)
+
+register_commands(app)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)

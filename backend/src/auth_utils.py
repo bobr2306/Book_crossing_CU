@@ -1,10 +1,9 @@
-# backend/src/auth_utils.py
 from datetime import datetime, timedelta
 import jwt
 from passlib.context import CryptContext
 
 # Настройки
-SECRET_KEY = "your-256-bit-secret"  # Замените на реальный ключ
+SECRET_KEY = "your-256-bit-secret"  # Replace with a secure 32-byte key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

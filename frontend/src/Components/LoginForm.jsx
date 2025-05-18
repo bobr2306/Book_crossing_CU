@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const API_URL = 'http://localhost:5001';
 
 export default function LoginForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,9 +25,7 @@ export default function LoginForm() {
         setError(data.error || 'Ошибка входа');
         return;
       }
-      localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem('user_id', data.user_id);
-      localStorage.setItem('role', data.role);
+      login(data.access_token, data.user_id, data.role);
       navigate('/');
     } catch (err) {
       setError('Ошибка соединения с сервером');
