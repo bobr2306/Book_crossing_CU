@@ -1,40 +1,38 @@
 import click
-from src.database.database import get_db, db
+from src.database.database import get_db, init_db
 from src.database.models import User, Book
 from src.database.crud import create_user, create_book
+from src.auth_utils import hash_password
 
 def register_commands(app):
     @app.cli.command("create-tables")
     def create_tables():
-        """Создает таблицы в БД"""
-        with app.app_context():
-            db.create_all()
+        try:
+            init_db()
             click.echo("Таблицы успешно созданы")
+        except Exception as e:
+            click.echo(f"Ошибка при создании таблиц: {e}", err=True)
+            raise
 
     @app.cli.command("seed-db")
     def seed_db():
-        """Добавляет тестовые данные в БД"""
-        db = get_db()
-
-        # Создаем тестовых пользователей
-        users = [
-            {"username": "admin", "password": "admin123", "role": "admin"},
-            {"username": "user1", "password": "user123"},
-            {"username": "user2", "password": "user123"}
-        ]
-
-        for user_data in users:
-            create_user(db, user_data)
-
-        # Создаем тестовые книги
-        books = [
-            {"title": "Война и мир", "author": "Лев Толстой", "user_id": 1},
-            {"title": "1984", "author": "Джордж Оруэлл", "user_id": 2},
-            {"title": "Мастер и Маргарита", "author": "Михаил Булгаков", "user_id": 2}
-        ]
-
-        for book_data in books:
-            create_book(db, book_data)
-
-        db.commit()
-        click.echo("Тестовые данные успешно добавлены в БД")
+        try:
+            with get_db() as db:
+                users = [
+                    {"username": "admin", "password": hash_password("admin123"), "role": "admin"},
+                    {"username": "user1", "password": hash_password("user123"), "role": "user"},
+                    {"username": "user2", "password": hash_password("user123"), "role": "user"}
+                ]
+                for user_data in users:
+                    create_user(db, user_data)
+                books = [
+                    {"title": "Война и мир", "author": "Лев Толстой", "user_id": 1, "category": "Классика", "year": 1869},
+                    {"title": "1984", "author": "Джордж Оруэлл", "user_id": 2, "category": "Антиутопия", "year": 1949},
+                    {"title": "Мастер и Маргарита", "author": "Михаил Булгаков", "user_id": 2, "category": "Фантастика", "year": 1940}
+                ]
+                for book_data in books:
+                    create_book(db, book_data)
+                click.echo("Тестовые данные успешно добавлены в БД")
+        except Exception as e:
+            click.echo(f"Ошибка при добавлении тестовых данных: {e}", err=True)
+            raise

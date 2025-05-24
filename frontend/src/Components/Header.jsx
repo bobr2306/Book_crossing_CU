@@ -2,14 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-// Компонент шапки сайта с навигацией и элементами профиля
-// Добавлен пропс logoSrc для пути к SVG логотипу
+
 function Header({ isLoggedIn, isAdmin, onLoginLogout, onNavigate, logoSrc }) {
-    // onLoginLogout: функция для обработки входа/выхода
-    // onNavigate: функция для обработки перехода по вкладкам (принимает название вкладки, например 'books', 'exchanges')
-    // isLoggedIn: булево значение, показывающее, вошел ли пользователь в систему
-    // isAdmin: булево значение, показывающее, является ли пользователь администратором
-    // logoSrc: путь к SVG файлу логотипа
 
     const { isAuthenticated, logout } = useAuth();
 
@@ -59,7 +53,7 @@ function Header({ isLoggedIn, isAdmin, onLoginLogout, onNavigate, logoSrc }) {
 
                 {/* Кнопка профиля (Вход/Выход) */}
                 <div>
-                    {isAuthenticated ? (
+                    {isLoggedIn ? (
                         <button
                             className="bg-white text-gray-800 px-4 py-2 rounded hover:bg-gray-200 transition-colors"
                             onClick={logout}

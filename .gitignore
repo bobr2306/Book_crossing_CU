@@ -32,3 +32,6 @@ backend/src/routes/__pycache__/books.cpython-39.pyc
 backend/src/routes/__pycache__/collections.cpython-39.pyc
 backend/src/routes/__pycache__/transactions.cpython-39.pyc
 backend/src/routes/__pycache__/users.cpython-39.pyc
+text
+
+frontend/.vite/

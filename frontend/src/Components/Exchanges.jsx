@@ -19,7 +19,7 @@ function Exchanges() {
     const exchangesPerPage = 10;
 
     // URL API для обменов
-    const API_URL = 'http://localhost:5000/exchanges';
+    const API_URL = 'http://localhost:5001/exchanges';
 
     // Функция для загрузки обменов
     const fetchExchanges = async (type) => {

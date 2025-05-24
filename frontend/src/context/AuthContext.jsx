@@ -2,42 +2,40 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
-export const useAuth = () => useContext(AuthContext);
+export function AuthProvider({ children }) {
+  const [token, setToken] = useState(localStorage.getItem('token') || '');
+  const [userId, setUserId] = useState(localStorage.getItem('user_id') || '');
+  const [role, setRole] = useState(localStorage.getItem('role') || '');
 
-export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
+  const login = (accessToken, userId, userRole) => {
+    setToken(accessToken);
+    setUserId(userId);
+    setRole(userRole);
 
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      setIsAuthenticated(true);
-      setUser({
-        id: localStorage.getItem('user_id'),
-        role: localStorage.getItem('role')
-      });
-    }
-  }, []);
-
-  const login = (token, userId, role) => {
-    localStorage.setItem('access_token', token);
+    localStorage.setItem('token', accessToken);
     localStorage.setItem('user_id', userId);
-    localStorage.setItem('role', role);
-    setIsAuthenticated(true);
-    setUser({ id: userId, role });
+    localStorage.setItem('role', userRole);
   };
 
   const logout = () => {
-    localStorage.removeItem('access_token');
+    setToken('');
+    setUserId('');
+    setRole('');
+
+    localStorage.removeItem('token');
     localStorage.removeItem('user_id');
     localStorage.removeItem('role');
-    setIsAuthenticated(false);
-    setUser(null);
   };
 
+  const isLoggedIn = !!token;
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider value={{ token, userId, role, login, logout, isLoggedIn }}>
+        {children}
+      </AuthContext.Provider>
   );
-}; 
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
+}

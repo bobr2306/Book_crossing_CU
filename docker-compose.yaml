@@ -43,6 +43,7 @@ services:
     environment:
       - FLASK_ENV=development
       - DATABASE_URL=postgresql://myuser:mypassword@postgres:5432/mydatabase
+      - SECRET_KEY=43939478e74683d1a40eab9772216711c5354d4728e7a6c80dcb084ae5ca4b8f
     depends_on:
       postgres:
         condition: service_healthy

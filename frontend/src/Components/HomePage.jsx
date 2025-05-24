@@ -1,127 +1,163 @@
 import React, { useState, useEffect } from 'react';
-import Header from './Header'; // Импортируем компонент шапки
+import { useNavigate } from 'react-router-dom';
+import Header from './Header';
 import Footer from './Footer';
 import Exchanges from './Exchanges';
-// Убедитесь, что SVG файл logo.svg находится в папке src/assets
-import BookLogo from '../assets/book.svg'; // Импортируем SVG логотип
-
-// Для простоты разработки используем CDN.
-// В продакшене лучше устанавливать библиотеки через npm/yarn.
-// Bootstrap CSS: https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css
-// Bootstrap JS: https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js
-// Tailwind CSS: https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css
+import BookLogo from '../assets/book.svg';
+import { useAuth } from '../context/AuthContext';
+import AdminPanel from "./AdminPanel.jsx";
 
 function HomePage() {
-    // Состояния для хранения списка книг, состояния загрузки и ошибки
+    const { token, userId, logout, isLoggedIn: authIsLoggedIn, isAdmin: authIsAdmin } = useAuth();
+    const navigate = useNavigate();
+
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Состояния для фильтров (обновлены в соответствии с роутом)
-    const [categoryFilter, setCategoryFilter] = useState(''); // Используем category вместо genre
-    const [authorFilter, setAuthorFilter] = useState('');   // Используем author вместо searchQuery для автора
+    const [categoryFilter, setCategoryFilter] = useState('');
+    const [authorFilter, setAuthorFilter] = useState('');
 
-    // Состояния для симуляции авторизации и роли администратора
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [isAdmin, setIsAdmin] = useState(false); // Для демонстрации админской панели
+    const [currentTab, setCurrentTab] = useState('books');
 
-    // Состояние для текущей вкладки (для навигации в шапке)
-    const [currentTab, setCurrentTab] = useState('books'); // По умолчанию 'Список книг'
-
-    // Добавляем состояния для пагинации
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const booksPerPage = 12;
 
-    // URL вашего бэкенд API для получения списка книг
-    // Замените на актуальный URL вашего Flask-приложения
-    // Учитываем параметры category, author, user_id
-    const API_URL = 'http://localhost:5000/books'; // Пример URL роута /books
+    const [showModal, setShowModal] = useState(false);
+    const [newBook, setNewBook] = useState({
+        title: '',
+        author: '',
+        category: '',
+        year: ''
+    });
 
-    // Функция для загрузки книг с бэкенда
+    const API_URL = 'http://localhost:5001/books';
+
     const fetchBooks = async () => {
-        if (currentTab !== 'books') {
-            // Загружаем книги только на вкладке "Список книг"
-            setBooks([]); // Очищаем список при смене вкладки
+        if (!authIsLoggedIn || currentTab !== 'books') {
+            setBooks([]);
             setLoading(false);
-            setError(null);
+            setError(!authIsLoggedIn ? 'unauthorized' : null);
             return;
         }
 
         setLoading(true);
         setError(null);
+
         try {
-            // Формируем URL с параметрами фильтрации
             const url = new URL(API_URL);
-            if (categoryFilter) {
-                url.searchParams.append('category', categoryFilter);
-            }
-            if (authorFilter) {
-                url.searchParams.append('author', authorFilter);
-            }
-            // Добавляем параметры пагинации
-            url.searchParams.append('page', currentPage);
-            url.searchParams.append('per_page', booksPerPage);
+            if (categoryFilter) url.searchParams.append('category', categoryFilter);
+            if (authorFilter) url.searchParams.append('author', authorFilter);
+            url.searchParams.append('skip', (currentPage - 1) * booksPerPage);
+            url.searchParams.append('limit', booksPerPage);
 
-            const response = await fetch(url);
+            const response = await fetch(url.toString(), {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
-            // Проверяем статус ответа
+            if (response.status === 401) {
+                setError('unauthorized');
+                return;
+            }
+
             if (!response.ok) {
-                throw new Error(`Ошибка HTTP: статус ${response.status}`);
+                throw new Error(`HTTP error: ${response.status}`);
             }
 
             const data = await response.json();
-            // Учитываем структуру данных из вашего роута
             setBooks(data.books);
             setTotalPages(Math.ceil(data.total / booksPerPage));
         } catch (err) {
             setError(err.message);
+            console.error('Ошибка при загрузке книг:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    // Загружаем книги при первом рендере компонента и при изменении фильтров или вкладки
     useEffect(() => {
         fetchBooks();
-    }, [categoryFilter, authorFilter, currentTab, currentPage]); // Зависимости
+    }, [categoryFilter, authorFilter, currentTab, currentPage, authIsLoggedIn, token]);
 
-    // Обработчики изменений для фильтров
-    const handleCategoryChange = (event) => {
-        setCategoryFilter(event.target.value);
-        setCurrentPage(1); // Сбрасываем страницу при изменении фильтров
+    const handleCategoryChange = (e) => {
+        setCategoryFilter(e.target.value);
+        setCurrentPage(1);
     };
 
-    const handleAuthorChange = (event) => {
-        setAuthorFilter(event.target.value);
-        setCurrentPage(1); // Сбрасываем страницу при изменении фильтров
+    const handleAuthorChange = (e) => {
+        setAuthorFilter(e.target.value);
+        setCurrentPage(1);
     };
 
-    // Обработчик для кнопки "Предложить свою книгу" (пока просто выводим в консоль)
     const handleProposeBook = () => {
-        console.log('Нажата кнопка "Предложить свою книгу"');
-        // Здесь будет логика перехода на страницу добавления книги
+        setShowModal(true);
     };
 
-    // Обработчик для кнопки Вход/Выход (симуляция)
     const handleLoginLogout = () => {
-        setIsLoggedIn(!isLoggedIn);
-        // В реальном приложении здесь будет логика аутентификации
-        // Для демонстрации переключаем isAdmin при входе/выходе
-        if (!isLoggedIn) {
-            setIsAdmin(true); // Симулируем вход админа
+        if (authIsLoggedIn) {
+            logout();
         } else {
-            setIsAdmin(false); // Симулируем выход
+            navigate('/login');
         }
     };
 
-    // Обработчик для навигации по вкладкам
     const handleNavigate = (tab) => {
         setCurrentTab(tab);
-        // В реальном приложении здесь будет логика маршрутизации (например, с React Router)
     };
 
-    // Функция для отображения пагинации
+    const handleModalClose = () => {
+        setShowModal(false);
+        setNewBook({ title: '', author: '', category: '', year: '' });
+    };
+
+    const handleAddBook = async () => {
+        // Валидация полей
+        if (!newBook.title.trim() || !newBook.author.trim() || !newBook.category.trim() || !newBook.year.trim()) {
+            alert('Пожалуйста, заполните все поля');
+            return;
+        }
+
+        // Проверка года
+        const yearNum = parseInt(newBook.year);
+        if (isNaN(yearNum)) {
+            alert('Год должен быть числом');
+            return;
+        }
+
+        try {
+            const bookToSend = {
+                title: newBook.title.trim(),
+                author: newBook.author.trim(),
+                category: newBook.category.trim(),
+                year: yearNum,
+                user_id: userId // Используем userId из контекста аутентификации
+            };
+
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(bookToSend)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Ошибка при добавлении книги');
+            }
+
+            handleModalClose();
+            fetchBooks(); // Обновляем список книг
+            alert('Книга успешно добавлена!');
+        } catch (err) {
+            alert(`Ошибка: ${err.message}`);
+            console.error('Ошибка при добавлении книги:', err);
+        }
+    };
     const renderPagination = () => {
         const pages = [];
         for (let i = 1; i <= totalPages; i++) {
@@ -144,72 +180,59 @@ function HomePage() {
 
     return (
         <div className="flex flex-col min-h-screen">
-            {/* Шапка - размещаем ее здесь, вне основного контейнера */}
             <Header
-                isLoggedIn={isLoggedIn}
-                isAdmin={isAdmin}
+                isLoggedIn={authIsLoggedIn}
+                isAdmin={authIsAdmin}
                 onLoginLogout={handleLoginLogout}
                 onNavigate={handleNavigate}
-                logoSrc={BookLogo} // Передаем путь к SVG логотипу
+                logoSrc={BookLogo}
             />
 
-            {/* Основное содержимое - теперь оно внутри контейнера */}
             <div className="container mx-auto p-4 flex-grow mt-24">
                 <div className="flex flex-col md:flex-row">
-                    {/* Левая колонка для фильтров и кнопки добавления книги */}
                     <div className="w-full md:w-1/4 pr-4">
                         <h2 className="text-xl font-semibold mb-4">Фильтры</h2>
 
-                        {/* Фильтр по жанру (категории) */}
                         <div className="mb-4">
-                            <label htmlFor="categoryFilter" className="form-label">Жанр (Категория):</label>
+                            <label htmlFor="categoryFilter" className="block mb-2 text-sm font-medium text-gray-700">Жанр (Категория):</label>
                             <select
                                 id="categoryFilter"
-                                className="form-select"
+                                className="w-full p-2 border border-gray-300 rounded-md"
                                 value={categoryFilter}
                                 onChange={handleCategoryChange}
                             >
                                 <option value="">Все жанры</option>
-                                {/* Здесь должны быть опции жанров, полученные с бэкенда или предопределенные */}
                                 <option value="fiction">Художественная литература</option>
                                 <option value="science">Наука</option>
                                 <option value="fantasy">Фэнтези</option>
-                                {/* Добавьте другие жанры */}
                             </select>
                         </div>
 
-                        {/* Фильтр по автору */}
                         <div className="mb-4">
-                            <label htmlFor="authorFilter" className="form-label">Автор:</label>
+                            <label htmlFor="authorFilter" className="block mb-2 text-sm font-medium text-gray-700">Автор:</label>
                             <input
                                 type="text"
                                 id="authorFilter"
-                                className="form-control"
+                                className="w-full p-2 border border-gray-300 rounded-md"
                                 placeholder="Введите автора"
                                 value={authorFilter}
                                 onChange={handleAuthorChange}
                             />
                         </div>
 
-                        {/* Кнопка "Предложить свою книгу" */}
                         <button
-                            className="btn btn-success w-full mb-4"
+                            className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md mb-4"
                             onClick={handleProposeBook}
                         >
                             Предложить свою книгу
                         </button>
 
-                        {/* Подвкладка для просмотра книг других пользователей (логика будет зависеть от userBooksFilter) */}
-                        {/* Этот элемент скорее индикативный, фильтр выше уже позволяет это делать */}
                         <div className="text-sm text-gray-600">
                             Используйте фильтр "Книги пользователя" для просмотра книг других пользователей.
                         </div>
-
                     </div>
 
-                    {/* Правая колонка для списка книг */}
                     <div className="w-full md:w-3/4">
-                        {/* Заголовок в зависимости от вкладки */}
                         <h1 className="text-3xl font-bold mb-4">
                             {currentTab === 'books' && 'Доступные книги для обмена'}
                             {currentTab === 'exchanges' && 'Обмены книгами'}
@@ -217,28 +240,29 @@ function HomePage() {
                             {currentTab === 'admin' && 'Админская панель'}
                         </h1>
 
-                        {/* Отображение содержимого в зависимости от вкладки */}
                         {currentTab === 'books' && (
                             <>
-                                {/* Отображение состояния загрузки или ошибки */}
                                 {loading && <div className="text-center text-blue-500">Загрузка книг...</div>}
-                                {error && <div className="text-center text-red-500">Ошибка загрузки: {error}</div>}
 
-                                {/* Список книг */}
+                                {error === 'unauthorized' && (
+                                    <div className="text-center text-red-500">Пожалуйста, войдите в аккаунт, чтобы просматривать книги.</div>
+                                )}
+
+                                {error && error !== 'unauthorized' && (
+                                    <div className="text-center text-red-500">Ошибка загрузки: {error}</div>
+                                )}
+
                                 {!loading && !error && (
                                     <>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                             {books.length > 0 ? (
                                                 books.map(book => (
-                                                    // Учитываем структуру данных из вашего роута
-                                                    <div key={book.user_id + book.title} className="card shadow-sm"> {/* Используем комбинацию user_id и title как ключ, так как id нет в ответе */}
-                                                        <div className="card-body">
-                                                            <h5 className="card-title">{book.title}</h5>
-                                                            <h6 className="card-subtitle mb-2 text-muted">{book.author}</h6>
-                                                            <p className="card-text"><strong>Категория:</strong> {book.category}</p>
-                                                            <p className="card-text"><strong>Год:</strong> {book.year}</p>
-                                                            {/* Добавьте другие поля, если они есть в ответе API */}
-                                                            {/* <p className="card-text"><strong>Пользователь ID:</strong> {book.user_id}</p> */}
+                                                    <div key={book.id} className="border rounded-lg shadow-sm p-4">
+                                                        <div className="space-y-2">
+                                                            <h5 className="text-lg font-semibold">{book.title}</h5>
+                                                            <h6 className="text-sm text-gray-500">{book.author}</h6>
+                                                            <p className="text-sm"><strong>Категория:</strong> {book.category}</p>
+                                                            <p className="text-sm"><strong>Год:</strong> {book.year}</p>
                                                         </div>
                                                     </div>
                                                 ))
@@ -247,7 +271,6 @@ function HomePage() {
                                             )}
                                         </div>
 
-                                        {/* Пагинация */}
                                         {totalPages > 1 && (
                                             <div className="flex justify-center mt-8">
                                                 <div className="flex space-x-2">
@@ -274,20 +297,66 @@ function HomePage() {
                             </>
                         )}
 
-                        {/* Содержимое для других вкладок */}
-                        {currentTab === 'exchanges' && (
-                            <Exchanges />
-                        )}
+                        {currentTab === 'exchanges' && <Exchanges />}
+                        {currentTab === 'collections' && <div className="text-center text-gray-500">Содержимое вкладки "Коллекции"</div>}
 
-                        {currentTab === 'collections' && (
-                            <div className="text-center text-gray-500">Содержимое вкладки "Коллекции"</div>
+                        {currentTab === 'admin' && authIsAdmin && (
+                            <AdminPanel />
                         )}
-                        {currentTab === 'admin' && (
-                            <div className="text-center text-gray-500">Содержимое вкладки "Админская панель" (видно только админам)</div>
+                        {currentTab === 'admin' && !authIsAdmin && (
+                            <div className="text-center text-red-500">Доступ запрещён</div>
                         )}
                     </div>
                 </div>
             </div>
+
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                    <div className="bg-white p-6 rounded shadow-md w-96">
+                        <h2 className="text-xl font-bold mb-4">Добавить книгу</h2>
+
+                        <input
+                            type="text"
+                            placeholder="Название*"
+                            className="w-full mb-2 p-2 border"
+                            value={newBook.title}
+                            onChange={e => setNewBook({ ...newBook, title: e.target.value })}
+                            required
+                        />
+                        <input
+                            type="text"
+                            placeholder="Автор*"
+                            className="w-full mb-2 p-2 border"
+                            value={newBook.author}
+                            onChange={e => setNewBook({ ...newBook, author: e.target.value })}
+                            required
+                        />
+                        <input
+                            type="text"
+                            placeholder="Категория*"
+                            className="w-full mb-2 p-2 border"
+                            value={newBook.category}
+                            onChange={e => setNewBook({ ...newBook, category: e.target.value })}
+                            required
+                        />
+                        <input
+                            type="number"
+                            placeholder="Год*"
+                            className="w-full mb-4 p-2 border"
+                            value={newBook.year}
+                            onChange={e => setNewBook({ ...newBook, year: e.target.value })}
+                            min="1900"
+                            max={new Date().getFullYear()}
+                            required
+                        />
+
+                        <div className="flex justify-end space-x-2">
+                            <button onClick={handleModalClose} className="bg-gray-300 px-4 py-2 rounded">Отмена</button>
+                            <button onClick={handleAddBook} className="bg-blue-600 text-white px-4 py-2 rounded">Добавить</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <Footer />
         </div>

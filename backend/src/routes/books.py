@@ -5,37 +5,49 @@ from src.database import schemas
 from src.auth import auth_required
 
 def books_routes(app):
-    @app.errorhandler(Exception)
-    def handle_exception(e):
-        return jsonify({'error': str(e)}), 500
-
     @app.route('/books', methods=['GET'])
     @auth_required
     def get_books_route():
-        db = next(get_db())
-        category = request.args.get('category')
-        author = request.args.get('author')
-        user_id = request.args.get('user_id')
-        skip = int(request.args.get('skip', 0))
-        limit = int(request.args.get('limit', 100))
         try:
-            books = get_books(db, skip=skip, limit=limit, category=category, author=author, user_id=user_id)
+            db = get_db()
+            category = request.args.get('category')
+            author = request.args.get('author')
+            user_id = request.args.get('user_id')
+            skip = int(request.args.get('skip', 0))
+            limit = int(request.args.get('limit', 12))
+
+            books_list = get_books(db, category=category, author=author, user_id=user_id)
+            total_count = len(books_list)
+            books = books_list[skip:skip + limit]
+
             books_data = [{
+                'id': book.id,
                 'title': book.title,
                 'author': book.author,
                 'category': book.category,
                 'user_id': book.user_id,
                 'year': book.year
             } for book in books]
-            return jsonify(books_data)
+
+            return jsonify({
+                'books': books_data,
+                'total': total_count
+            })
+
+        except ValueError as e:
+            return jsonify({'error': 'Invalid parameters', 'details': str(e)}), 400
         except Exception as e:
+            import traceback
+            traceback.print_exc()  # Печатает трассировку в консоль
+
             return jsonify({'error': str(e)}), 500
+
 
     @app.route('/books/<int:book_id>', methods=['GET'])
     @auth_required
     def get_book_route(book_id):
-        db = next(get_db())
         try:
+            db = get_db()
             book = get_book(db, book_id)
             book_data = {
                 'id': book.id,
@@ -53,8 +65,8 @@ def books_routes(app):
     @app.route('/books', methods=['POST'])
     @auth_required
     def create_book_route():
-        db = next(get_db())
         try:
+            db = get_db()
             data = schemas.validate_book(request.get_json())
             book = create_book(db, data)
             return jsonify({
@@ -72,9 +84,9 @@ def books_routes(app):
     @app.route('/books/<int:book_id>', methods=['PUT'])
     @auth_required
     def update_book_route(book_id):
-        db = next(get_db())
         data = request.get_json()
         try:
+            db = get_db()
             update_book(db, book_id, data)
             return jsonify({'message': 'Book updated'}), 200
         except ValueError as e:
@@ -83,8 +95,8 @@ def books_routes(app):
     @app.route('/books/<int:book_id>', methods=['DELETE'])
     @auth_required
     def delete_book_route(book_id):
-        db = next(get_db())
         try:
+            db = get_db()
             delete_book(db, book_id)
             return jsonify({'message': 'Book deleted'}), 200
         except ValueError as e:

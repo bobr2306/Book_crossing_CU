@@ -19,8 +19,8 @@ def transactions_routes(app):
     @app.route('/transactions', methods=['GET'])
     @auth_required
     def get_transactions_route():
-        db = next(get_db())
         try:
+            db = get_db()
             limit = int(request.args.get('limit', 100))
             skip = int(request.args.get('skip', 0))
             status = request.args.get('status')
@@ -56,8 +56,8 @@ def transactions_routes(app):
     @app.route('/transactions/<int:transaction_id>', methods=['GET'])
     @auth_required
     def get_transaction_route(transaction_id):
-        db = next(get_db())
         try:
+            db = get_db()
             transaction = get_transaction(db, transaction_id)
             if not transaction:
                 return jsonify({"error": "Transaction not found"}), 404
@@ -89,9 +89,9 @@ def transactions_routes(app):
     @app.route('/transactions', methods=['POST'])
     @auth_required
     def create_transaction_route():
-        db = next(get_db())
         data = request.get_json()
         try:
+            db = get_db()
             required_fields = ["from_user_id", "to_user_id", "book_id", "place"]
             if not all(field in data for field in required_fields):
                 return jsonify({"error": "Missing required fields"}), 400
@@ -120,10 +120,10 @@ def transactions_routes(app):
     @app.route('/transactions/<int:transaction_id>', methods=['PUT'])
     @auth_required
     def update_transaction_route(transaction_id):
-        db = next(get_db())
         data = request.get_json()
 
         try:
+            db = get_db()
             allowed_fields = {"status", "place"}
             update_data = {k: v for k, v in data.items() if k in allowed_fields}
 
@@ -149,8 +149,8 @@ def transactions_routes(app):
     @auth_required
     @role_required('admin')
     def delete_transaction_route(transaction_id):
-        db = next(get_db())
         try:
+            db = get_db()
             success = delete_transaction(db, transaction_id)
             if not success:
                 return jsonify({"error": "Transaction not found"}), 404
@@ -162,10 +162,9 @@ def transactions_routes(app):
     @app.route('/transactions/<int:transaction_id>/status', methods=['PUT'])
     @auth_required
     def change_transaction_status_route(transaction_id):
-        db = get_db()
         data = request.get_json()
-
         try:
+            db = get_db()
             if "status" not in data:
                 return jsonify({"error": "Status is required"}), 400
 
