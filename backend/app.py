@@ -6,7 +6,7 @@ from src.routes.books import books_routes
 from src.routes.collections import collections_routes
 from src.routes.transactions import transactions_routes
 from src.database.commands import register_commands
-from src.database.crud import create_user, create_book
+from src.database.crud import create_user, create_book, create_transaction
 from src.auth_utils import hash_password
 from src.database.models import User
 app = Flask(__name__)
@@ -32,6 +32,48 @@ try:
             ]
             for book_data in books:
                 create_book(db, book_data)
+
+            # Добавляем тестовые обмены
+            transactions = [
+                {
+                    "from_user_id": 1,  # admin
+                    "to_user_id": 2,    # user1
+                    "book_id": 1,       # Война и мир
+                    "place": "Библиотека №1",
+                    "status": "pending"
+                },
+                {
+                    "from_user_id": 2,  # user1
+                    "to_user_id": 1,    # admin
+                    "book_id": 2,       # 1984
+                    "place": "Библиотека №2",
+                    "status": "accepted"
+                },
+                {
+                    "from_user_id": 1,  # admin
+                    "to_user_id": 3,    # user2
+                    "book_id": 3,       # Мастер и Маргарита
+                    "place": "Библиотека №3",
+                    "status": "in_progress"
+                },
+                {
+                    "from_user_id": 3,  # user2
+                    "to_user_id": 1,    # admin
+                    "book_id": 1,       # Война и мир
+                    "place": "Библиотека №1",
+                    "status": "completed"
+                },
+                {
+                    "from_user_id": 1,  # admin
+                    "to_user_id": 2,    # user1
+                    "book_id": 2,       # 1984
+                    "place": "Библиотека №2",
+                    "status": "rejected"
+                }
+            ]
+            for transaction_data in transactions:
+                create_transaction(db, transaction_data)
+
             print("🟢 Тестовые данные добавлены")
         else:
             print("ℹ️ Пользователь 'admin' уже существует, сидирование пропущено")

@@ -324,10 +324,19 @@ def get_transactions(
     query = db.query(models.Transaction)
 
     if status:
-        query = query.filter(models.Transaction.status == status)
+        # Поддержка списка статусов через запятую
+        if ',' in status:
+            status_list = [s.strip() for s in status.split(',')]
+            query = query.filter(models.Transaction.status.in_(status_list))
+        else:
+            query = query.filter(models.Transaction.status == status)
     if exclude_status:
         query = query.filter(models.Transaction.status != exclude_status)
     if user_id:
+        try:
+            user_id = int(user_id)
+        except Exception:
+            pass
         query = query.filter(
             (models.Transaction.from_user_id == user_id) |
             (models.Transaction.to_user_id == user_id)

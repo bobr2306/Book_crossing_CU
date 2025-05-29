@@ -1,5 +1,5 @@
 from flask import request, jsonify
-from src.auth import auth_required
+from src.auth import auth_required, role_required
 from src.database.crud import (
     create_collection,
     get_collections,
@@ -176,3 +176,23 @@ def collections_routes(app):
             })
         except Exception as e:
             return handle_exception(e)
+
+    @app.route('/admin/collections', methods=['GET'])
+    @auth_required
+    @role_required('admin')
+    def admin_get_collections():
+        db = get_db()
+        collections = get_collections(db)
+        return jsonify([
+            {"id": c.id, "title": c.title, "user_id": c.user_id, "book_count": len(c.items)} for c in collections
+        ])
+
+    @app.route('/admin/collections/<int:collection_id>', methods=['DELETE'])
+    @auth_required
+    @role_required('admin')
+    def admin_delete_collection(collection_id):
+        db = get_db()
+        success = delete_collection(db, collection_id)
+        if not success:
+            return jsonify({"error": "Collection not found"}), 404
+        return jsonify({"status": "deleted", "id": collection_id})

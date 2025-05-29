@@ -1,6 +1,7 @@
-import pytest
-import json
+import sys
 import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+import pytest
 from flask import Flask
 from src.database.models import Book, User
 from src.init_routes import init_routes
@@ -44,7 +45,7 @@ def db_session(mocker):
 
 @pytest.fixture(autouse=True)
 def mock_get_db_session(mocker, db_session):
-    mocker.patch("backend.src.database.database.get_db", return_value=db_session)
+    mocker.patch("src.database.database.get_db", return_value=db_session)
 
 
 def test_create_book_success(client, mocker, mock_auth):
@@ -65,7 +66,7 @@ def test_create_book_success(client, mocker, mock_auth):
         user_id=book_data["user_id"]
     )
 
-    mocker.patch("backend.src.routes.books.create_book", return_value=mock_book)
+    mocker.patch("src.routes.books.create_book", return_value=mock_book)
 
 
 
@@ -107,24 +108,24 @@ def test_get_books(client, mocker, mock_auth):
     mock_book2.user_id = 1
     mock_book2.year = 2001
 
-    mocker.patch("backend.src.routes.books.get_books", return_value=[mock_book1, mock_book2])
+    mocker.patch("src.routes.books.get_books", return_value=[mock_book1, mock_book2])
     response = client.get("/books", headers=mock_auth["headers"])
 
     assert response.status_code == 200
-    assert len(response.json) == 2
-    assert response.json[0]["title"] == "Book 1"
-    assert response.json[1]["author"] == "Author 2"
+    assert len(response.json["books"]) == 2
+    assert response.json["books"][0]["title"] == "Book 1"
+    assert response.json["books"][1]["author"] == "Author 2"
 
 
 def test_get_books_with_filters(client, mocker, mock_auth):
     mock_books = [
         Book(id=1, title="Filtered Book", author="Author", category="Category", user_id=1)
     ]
-    mocker.patch("backend.src.routes.books.get_books", return_value=mock_books)
+    mocker.patch("src.routes.books.get_books", return_value=mock_books)
     response = client.get("/books?category=Category&author=Author&skip=0&limit=1", headers=mock_auth["headers"])
     assert response.status_code == 200
-    assert len(response.json) == 1
-    assert response.json[0]["title"] == "Filtered Book"
+    assert len(response.json["books"]) == 1
+    assert response.json["books"][0]["title"] == "Filtered Book"
 
 
 def test_get_book_success(client, mocker, mock_auth):
@@ -136,7 +137,7 @@ def test_get_book_success(client, mocker, mock_auth):
     mock_book.user_id = 1
     mock_book.year = 2000
 
-    mocker.patch("backend.src.routes.books.get_book", return_value=mock_book)
+    mocker.patch("src.routes.books.get_book", return_value=mock_book)
     response = client.get("/books/1", headers=mock_auth["headers"])
     assert response.status_code == 200
     assert response.json["title"] == "Test Book"
@@ -144,7 +145,7 @@ def test_get_book_success(client, mocker, mock_auth):
 
 
 def test_get_book_not_found(client, mocker, mock_auth):
-    mocker.patch("backend.src.routes.books.get_book", side_effect=ValueError("Book not found"))
+    mocker.patch("src.routes.books.get_book", side_effect=ValueError("Book not found"))
     response = client.get("/books/999", headers=mock_auth["headers"])
     assert response.status_code == 404
     assert "Book not found" in response.json["error"]
@@ -164,35 +165,35 @@ def test_create_book_missing_user_id(client, mock_auth):
 
 def test_update_book_success(client, mocker, mock_auth):
     update_data = {"title": "Updated Title"}
-    mocker.patch("backend.src.routes.books.update_book", return_value=None)
+    mocker.patch("src.routes.books.update_book", return_value=None)
     response = client.put("/books/1", json=update_data, headers=mock_auth["headers"])
     assert response.status_code == 200
     assert response.json["message"] == "Book updated"
 
 
 def test_update_book_not_found(client, mocker, mock_auth):
-    mocker.patch("backend.src.routes.books.update_book", side_effect=ValueError("Book not found"))
+    mocker.patch("src.routes.books.update_book", side_effect=ValueError("Book not found"))
     response = client.put("/books/999", json={"title": "New Title"}, headers=mock_auth["headers"])
     assert response.status_code == 400
     assert "Book not found" in response.json["error"]
 
 
 def test_delete_book_success(client, mocker, mock_auth):
-    mocker.patch("backend.src.routes.books.delete_book", return_value=None)
+    mocker.patch("src.routes.books.delete_book", return_value=None)
     response = client.delete("/books/1", headers=mock_auth["headers"])
     assert response.status_code == 200
     assert response.json["message"] == "Book deleted"
 
 
 def test_delete_book_not_found(client, mocker, mock_auth):
-    mocker.patch("backend.src.routes.books.delete_book", side_effect=ValueError("Book not found"))
+    mocker.patch("src.routes.books.delete_book", side_effect=ValueError("Book not found"))
     response = client.delete("/books/999", headers=mock_auth["headers"])
     assert response.status_code == 400
     assert "Book not found" in response.json["error"]
 
 
 def test_internal_server_error(client, mocker, mock_auth):
-    mocker.patch("backend.src.routes.books.get_books", side_effect=Exception("Unexpected error"))
+    mocker.patch("src.routes.books.get_books", side_effect=Exception("Unexpected error"))
     response = client.get("/books", headers=mock_auth["headers"])
     assert response.status_code == 500
     assert "Unexpected error" in response.json["error"]

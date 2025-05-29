@@ -1,6 +1,7 @@
-from flask import Flask
-import json
+import sys
 import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+from flask import Flask
 import pytest
 from datetime import datetime, timezone
 from src.database.models import User, Book,  Transaction
@@ -55,7 +56,7 @@ def db_session(mocker):
 
 @pytest.fixture(autouse=True)
 def mock_get_db_session(mocker, db_session):
-    mocker.patch("backend.src.database.database.get_db", return_value=db_session)
+    mocker.patch("src.database.database.get_db", return_value=db_session)
 
 @pytest.fixture
 def mock_book():
@@ -94,7 +95,7 @@ def test_create_transaction_success(client, mocker, mock_auth, mock_transaction)
     }
 
     mocker.patch(
-        "backend.src.routes.transactions.create_transaction",
+        "src.routes.transactions.create_transaction",
         return_value=mock_transaction
     )
 
@@ -110,7 +111,7 @@ def test_create_transaction_success(client, mocker, mock_auth, mock_transaction)
 
 def test_get_transactions(client, mocker, mock_auth, mock_transaction):
     mocker.patch(
-        "backend.src.routes.transactions.get_transactions",
+        "src.routes.transactions.get_transactions",
         return_value=[mock_transaction]
     )
 
@@ -158,7 +159,7 @@ def test_get_transaction_detail(client, mocker, mock_auth):
     mock_transaction.book = mock_book
 
     mocker.patch(
-        "backend.src.routes.transactions.get_transaction",
+        "src.routes.transactions.get_transaction",
         return_value=mock_transaction
     )
 
@@ -182,7 +183,7 @@ def test_update_transaction(client, mocker, mock_auth, mock_transaction):
     updated_transaction.status = "completed"
 
     mocker.patch(
-        "backend.src.routes.transactions.update_transaction",
+        "src.routes.transactions.update_transaction",
         return_value=updated_transaction
     )
 
@@ -197,7 +198,7 @@ def test_update_transaction(client, mocker, mock_auth, mock_transaction):
 
 def test_delete_transaction(client, mocker, mock_auth, mock_admin):
     mocker.patch(
-        "backend.src.routes.transactions.delete_transaction",
+        "src.routes.transactions.delete_transaction",
         return_value=True
     )
 
@@ -213,7 +214,7 @@ def test_change_transaction_status(client, mocker, mock_auth, mock_transaction):
     mock_transaction.status = "completed"
 
     mocker.patch(
-        "backend.src.routes.transactions.update_transaction",
+        "src.routes.transactions.update_transaction",
         return_value=mock_transaction
     )
 

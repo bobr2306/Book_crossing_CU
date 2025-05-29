@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import pytest
 from flask import Flask
 from src.database.models import User
@@ -26,7 +29,7 @@ def db_session(mocker):
 
 @pytest.fixture
 def mock_get_db_session(mocker, db_session):
-    mocker.patch("backend.src.database.database.get_db", return_value=db_session)
+    mocker.patch("src.database.database.get_db", return_value=db_session)
 
 
 def test_auth(client, mocker):
@@ -40,11 +43,11 @@ def test_auth(client, mocker):
     mock_user.username = user_data["username"]
 
     mocker.patch(
-        "backend.src.routes.users.create_user",
+        "src.routes.users.create_user",
         return_value=mock_user
     )
     mocker.patch(
-        "backend.src.auth_utils.hash_password",
+        "src.auth_utils.hash_password",
         return_value="hashed_password"
     )
 
@@ -69,17 +72,17 @@ def test_login_success(client, mocker):
     mock_user.role = "user"
 
     mocker.patch(
-        "backend.src.routes.users.get_user_by_name",
+        "src.routes.users.get_user_by_name",
         return_value=mock_user
     )
 
     mocker.patch(
-        "backend.src.routes.users.verify_password",
+        "src.routes.users.verify_password",
         return_value=True
     )
 
     mocker.patch(
-        "backend.src.routes.users.create_access_token",
+        "src.routes.users.create_access_token",
         return_value="test_jwt_token"
     )
 
@@ -89,8 +92,9 @@ def test_login_success(client, mocker):
     )
     assert response.status_code == 200
     assert response.json == {
-        "access_token": "test_jwt_token",
-        "token_type": "bearer",
-        "user_id": 1,
-        "role": "user"
-    }
+    "access_token": "test_jwt_token",
+    "token_type": "bearer",
+    "user_id": 1,
+    "role": "user",
+    "username": "test_user"
+}
