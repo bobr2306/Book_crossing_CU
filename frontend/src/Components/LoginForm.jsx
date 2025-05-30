@@ -30,7 +30,7 @@ export default function LoginForm() {
         return;
       }
 
-      login(data.access_token, data.user_id, data.role);
+      login(data.access_token, data.user_id, data.role, data.username);
       navigate('/');
     } catch (err) {
       setError('Ошибка соединения с сервером');
@@ -49,10 +49,10 @@ export default function LoginForm() {
               <input
                   type="text"
                   placeholder="Имя пользователя"
+                  className="w-full p-2 border border-gray-300 rounded mb-4 bg-white text-gray-800"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  className="w-full p-3 rounded-lg border border-gray-300 text-sm focus:border-indigo-500 outline-none transition-colors"
               />
             </div>
             <div className="flex flex-col gap-2 text-left">
@@ -60,10 +60,10 @@ export default function LoginForm() {
               <input
                   type="password"
                   placeholder="Пароль"
+                  className="w-full p-2 border border-gray-300 rounded mb-4 bg-white text-gray-800"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full p-3 rounded-lg border border-gray-300 text-sm focus:border-indigo-500 outline-none transition-colors"
               />
             </div>
             <button

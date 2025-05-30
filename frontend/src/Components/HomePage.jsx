@@ -32,7 +32,28 @@ function HomePage() {
         year: ''
     });
 
+    // Для коллекций
+    const [collections, setCollections] = useState([]);
+    const [collectionsLoading, setCollectionsLoading] = useState(false);
+    const [collectionsError, setCollectionsError] = useState(null);
+
     const API_URL = 'http://localhost:5001/books';
+
+    const GENRES = [
+        { value: '', label: 'Все жанры' },
+        { value: 'Классика', label: 'Классика' },
+        { value: 'Фантастика', label: 'Фантастика' },
+        { value: 'Фэнтези', label: 'Фэнтези' },
+        { value: 'Роман', label: 'Роман' },
+        { value: 'Детектив', label: 'Детектив' },
+        { value: 'Приключения', label: 'Приключения' },
+        { value: 'Наука', label: 'Наука' },
+        { value: 'Поэзия', label: 'Поэзия' },
+        { value: 'История', label: 'История' },
+        { value: 'Биография', label: 'Биография' },
+        { value: 'Антиутопия', label: 'Антиутопия' },
+        { value: 'Служебная', label: 'Служебная' },
+    ];
 
     const fetchBooks = async () => {
         if (!authIsLoggedIn || currentTab !== 'books') {
@@ -51,6 +72,7 @@ function HomePage() {
             if (authorFilter) url.searchParams.append('author', authorFilter);
             url.searchParams.append('skip', (currentPage - 1) * booksPerPage);
             url.searchParams.append('limit', booksPerPage);
+            if (userId) url.searchParams.append('user_id', userId);
 
             const response = await fetch(url.toString(), {
                 headers: {
@@ -78,9 +100,31 @@ function HomePage() {
         }
     };
 
+    const fetchCollections = async () => {
+        setCollectionsLoading(true);
+        setCollectionsError(null);
+        try {
+            // Получаем все коллекции
+            const url = new URL('http://localhost:5001/collections');
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Ошибка загрузки коллекций');
+            const data = await response.json();
+            setCollections(data); // Показываем все коллекции
+        } catch (err) {
+            setCollectionsError(err.message);
+        } finally {
+            setCollectionsLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchBooks();
-    }, [categoryFilter, authorFilter, currentTab, currentPage, authIsLoggedIn, token]);
+        if (currentTab === 'collections' && authIsLoggedIn) {
+            fetchCollections();
+        }
+    }, [categoryFilter, authorFilter, currentTab, currentPage, authIsLoggedIn, token, userId]);
 
     const handleCategoryChange = (e) => {
         setCategoryFilter(e.target.value);
@@ -179,32 +223,28 @@ function HomePage() {
     };
 
     return (
-        <div className="flex flex-col min-h-screen">
+        <div className="min-h-screen flex flex-col">
             <Header
-                isLoggedIn={authIsLoggedIn}
-                isAdmin={authIsAdmin}
-                onLoginLogout={handleLoginLogout}
                 onNavigate={handleNavigate}
                 logoSrc={BookLogo}
             />
 
-            <div className="container mx-auto p-4 flex-grow mt-24">
-                <div className="flex flex-col md:flex-row">
-                    <div className="w-full md:w-1/4 pr-4">
-                        <h2 className="text-xl font-semibold mb-4">Фильтры</h2>
+            <main className="flex-grow container mx-auto px-4 pt-24 pb-20">
+                <div className="flex flex-col md:flex-row gap-6">
+                    <div className="w-full md:w-1/4 bg-white rounded-lg shadow-md p-6">
+                        <h2 className="text-xl font-semibold mb-4 text-gray-800">Фильтры</h2>
 
                         <div className="mb-4">
                             <label htmlFor="categoryFilter" className="block mb-2 text-sm font-medium text-gray-700">Жанр (Категория):</label>
                             <select
                                 id="categoryFilter"
-                                className="w-full p-2 border border-gray-300 rounded-md"
+                                className="w-full p-2 border border-gray-300 rounded-md bg-white text-gray-700"
                                 value={categoryFilter}
                                 onChange={handleCategoryChange}
                             >
-                                <option value="">Все жанры</option>
-                                <option value="fiction">Художественная литература</option>
-                                <option value="science">Наука</option>
-                                <option value="fantasy">Фэнтези</option>
+                                {GENRES.map(g => (
+                                    <option key={g.value} value={g.value}>{g.label}</option>
+                                ))}
                             </select>
                         </div>
 
@@ -213,7 +253,7 @@ function HomePage() {
                             <input
                                 type="text"
                                 id="authorFilter"
-                                className="w-full p-2 border border-gray-300 rounded-md"
+                                className="w-full p-2 border border-gray-300 rounded-md bg-white text-gray-700"
                                 placeholder="Введите автора"
                                 value={authorFilter}
                                 onChange={handleAuthorChange}
@@ -298,7 +338,25 @@ function HomePage() {
                         )}
 
                         {currentTab === 'exchanges' && <Exchanges />}
-                        {currentTab === 'collections' && <div className="text-center text-gray-500">Содержимое вкладки "Коллекции"</div>}
+                        {currentTab === 'collections' && (
+                            <>
+                                {collectionsLoading && <div className="text-center text-blue-500">Загрузка коллекций...</div>}
+                                {collectionsError && <div className="text-center text-red-500">{collectionsError}</div>}
+                                {!collectionsLoading && !collectionsError && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                        {collections.length > 0 ? collections.map(col => (
+                                            <div key={col.id} className="border rounded-lg shadow-sm p-4">
+                                                <h5 className="text-lg font-semibold mb-2">{col.title}</h5>
+                                                <p className="text-sm text-gray-600 mb-1">ID: {col.id}</p>
+                                                <p className="text-sm text-gray-600 mb-1">Книг в коллекции: {col.book_count}</p>
+                                            </div>
+                                        )) : (
+                                            <div className="col-span-full text-center text-gray-500">Коллекции не найдены.</div>
+                                        )}
+                                    </div>
+                                )}
+                            </>
+                        )}
 
                         {currentTab === 'admin' && authIsAdmin && (
                             <AdminPanel />
@@ -308,7 +366,7 @@ function HomePage() {
                         )}
                     </div>
                 </div>
-            </div>
+            </main>
 
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
@@ -318,7 +376,7 @@ function HomePage() {
                         <input
                             type="text"
                             placeholder="Название*"
-                            className="w-full mb-2 p-2 border"
+                            className="w-full mb-2 p-2 border bg-white text-gray-800"
                             value={newBook.title}
                             onChange={e => setNewBook({ ...newBook, title: e.target.value })}
                             required
@@ -326,23 +384,26 @@ function HomePage() {
                         <input
                             type="text"
                             placeholder="Автор*"
-                            className="w-full mb-2 p-2 border"
+                            className="w-full mb-2 p-2 border bg-white text-gray-800"
                             value={newBook.author}
                             onChange={e => setNewBook({ ...newBook, author: e.target.value })}
                             required
                         />
-                        <input
-                            type="text"
-                            placeholder="Категория*"
-                            className="w-full mb-2 p-2 border"
+                        <select
+                            className="w-full mb-2 p-2 border bg-white text-gray-800"
                             value={newBook.category}
                             onChange={e => setNewBook({ ...newBook, category: e.target.value })}
                             required
-                        />
+                        >
+                            <option value="">Выберите жанр*</option>
+                            {GENRES.filter(g => g.value).map(g => (
+                                <option key={g.value} value={g.value}>{g.label}</option>
+                            ))}
+                        </select>
                         <input
                             type="number"
                             placeholder="Год*"
-                            className="w-full mb-4 p-2 border"
+                            className="w-full mb-4 p-2 border bg-white text-gray-800"
                             value={newBook.year}
                             onChange={e => setNewBook({ ...newBook, year: e.target.value })}
                             min="1900"

@@ -110,24 +110,31 @@ def test_create_transaction_success(client, mocker, mock_auth, mock_transaction)
     assert response.json["status"] == "created"
 
 def test_get_transactions(client, mocker, mock_auth, mock_transaction):
+    mock_book = MagicMock()
+    mock_book.title = "Test Book"
+    # если нужны ещё атрибуты, добавь их
+    mock_transaction.book = mock_book
+
+    mock_transaction.id = 1
+    mock_transaction.place = "Library"
+    mock_transaction.status = "pending"
+    mock_transaction.date = datetime(2023, 1, 1, tzinfo=timezone.utc)
+    mock_transaction.from_user_id = 1
+    mock_transaction.to_user_id = 2
+    mock_transaction.from_user = MagicMock(id=1, username="user1")
+    mock_transaction.to_user = MagicMock(id=2, username="user2")
     mocker.patch(
         "src.routes.transactions.get_transactions",
         return_value=[mock_transaction]
     )
 
-    mock_book = MagicMock()
-    mock_book.title = "Test Book"
-    mock_transaction.book = mock_book
-
     response = client.get(
         "/transactions",
         headers=mock_auth["headers"]
     )
-
     assert response.status_code == 200
     assert len(response.json) == 1
     assert response.json[0]["book_title"] == "Test Book"
-
 
 def test_get_transaction_detail(client, mocker, mock_auth):
     """Тест получения деталей транзакции"""

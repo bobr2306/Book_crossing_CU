@@ -28,7 +28,6 @@ def transactions_routes(app):
             book_id = request.args.get('book_id')
             exclude_completed = request.args.get('exclude_completed', 'false').lower() == 'true'
 
-            # Приведение user_id и book_id к int, если возможно
             try:
                 user_id = int(user_id) if user_id is not None and user_id != '' else None
             except Exception:
@@ -50,13 +49,18 @@ def transactions_routes(app):
 
             transactions_data = []
             for t in transactions:
-                # Проверяем наличие связанных объектов
                 book_title = t.book.title if t.book else None
+                from_user_id = t.from_user_id
+                to_user_id = t.to_user_id
+                from_user_name = t.from_user.username if hasattr(t, 'from_user') and t.from_user else None
+                to_user_name = t.to_user.username if hasattr(t, 'to_user') and t.to_user else None
                 transactions_data.append({
                     "id": t.id,
                     "date": t.date.isoformat() if t.date else None,
-                    "from_user_id": t.from_user_id,
-                    "to_user_id": t.to_user_id,
+                    "from_user_id": from_user_id,
+                    "to_user_id": to_user_id,
+                    "from_user_name": from_user_name,
+                    "to_user_name": to_user_name,
                     "book_id": t.book_id,
                     "place": t.place,
                     "status": t.status,
@@ -200,9 +204,27 @@ def transactions_routes(app):
     def admin_get_transactions():
         db = get_db()
         transactions = get_transactions(db)
-        return jsonify([
-            {"id": t.id, "from_user_id": t.from_user_id, "to_user_id": t.to_user_id, "book_id": t.book_id, "place": t.place, "status": t.status, "date": t.date.isoformat()} for t in transactions
-        ])
+        result = []
+        for t in transactions:
+            result.append({
+                "id": t.id,
+                "from_user": {
+                    "id": t.from_user.id if t.from_user else None,
+                    "username": t.from_user.username if t.from_user else None
+                },
+                "to_user": {
+                    "id": t.to_user.id if t.to_user else None,
+                    "username": t.to_user.username if t.to_user else None
+                },
+                "book": {
+                    "id": t.book.id if t.book else None,
+                    "title": t.book.title if t.book else None
+                },
+                "place": t.place,
+                "status": t.status,
+                "date": t.date.isoformat() if t.date else None
+            })
+        return jsonify(result)
 
     @app.route('/admin/transactions/<int:transaction_id>', methods=['DELETE'])
     @auth_required

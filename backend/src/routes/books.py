@@ -30,6 +30,7 @@ def books_routes(app):
                 'author': book.author,
                 'category': book.category,
                 'user_id': book.user_id,
+                'username': book.user.username if hasattr(book, 'user') and book.user else None,
                 'year': book.year if book.year is not None else ''
             } for book in books]
 
@@ -59,6 +60,7 @@ def books_routes(app):
                 'author': book.author,
                 'category': book.category,
                 'user_id': book.user_id,
+                'username': book.user.username if hasattr(book, 'user') and book.user else None,
                 'year': book.year if book.year is not None else ''
             }
             return jsonify(book_data)

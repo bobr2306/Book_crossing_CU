@@ -85,7 +85,7 @@ class Transaction(Base):
     book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
     place = Column(String, nullable=False)
     status = Column(
-        Enum("completed", "pending", "canceled", "in_progress", name="transaction_status"),
+        Enum("completed", "pending", "canceled", "in_progress", "accepted", "rejected", name="transaction_status"),
         default="pending",
         nullable=False
     )

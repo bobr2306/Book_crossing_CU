@@ -13,7 +13,7 @@ os.environ["TESTING"] = "1"
 @pytest.fixture
 def mock_auth(mocker):
     """Фикстура для мокирования авторизации"""
-    mock_user = MagicMock(spec=User) # Убедимся, что это MagicMock с атрибутами User
+    mock_user = MagicMock(spec=User) 
     mock_user.id = 1
     mock_user.role = "user"
 
@@ -90,8 +90,10 @@ def test_create_book_fail(client, mocker, mock_auth):
     response = client.post("/books", json=invalid_book_data,  headers={"Authorization": "Bearer test_jwt_token"})
     assert response.status_code == 400
 
-
 def test_get_books(client, mocker, mock_auth):
+    # Первый mock-книга с пользователем
+    mock_user1 = MagicMock()
+    mock_user1.username = "User1"
     mock_book1 = MagicMock(spec=Book)
     mock_book1.id = 1
     mock_book1.title = "Book 1"
@@ -99,7 +101,9 @@ def test_get_books(client, mocker, mock_auth):
     mock_book1.category = "Category 1"
     mock_book1.user_id = 1
     mock_book1.year = 2000
+    mock_book1.user = mock_user1
 
+    # Второй mock-книга без пользователя
     mock_book2 = MagicMock(spec=Book)
     mock_book2.id = 2
     mock_book2.title = "Book 2"
@@ -107,16 +111,18 @@ def test_get_books(client, mocker, mock_auth):
     mock_book2.category = "Category 2"
     mock_book2.user_id = 1
     mock_book2.year = 2001
+    mock_book2.user = None
 
     mocker.patch("src.routes.books.get_books", return_value=[mock_book1, mock_book2])
     response = client.get("/books", headers=mock_auth["headers"])
-
+    print(response.json)
     assert response.status_code == 200
     assert len(response.json["books"]) == 2
     assert response.json["books"][0]["title"] == "Book 1"
+    assert response.json["books"][0]["username"] == "User1"
     assert response.json["books"][1]["author"] == "Author 2"
-
-
+    assert response.json["books"][1]["username"] is None
+    
 def test_get_books_with_filters(client, mocker, mock_auth):
     mock_books = [
         Book(id=1, title="Filtered Book", author="Author", category="Category", user_id=1)
@@ -136,6 +142,7 @@ def test_get_book_success(client, mocker, mock_auth):
     mock_book.category = "Test Category"
     mock_book.user_id = 1
     mock_book.year = 2000
+    mock_book.user = None 
 
     mocker.patch("src.routes.books.get_book", return_value=mock_book)
     response = client.get("/books/1", headers=mock_auth["headers"])

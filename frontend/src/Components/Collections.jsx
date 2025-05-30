@@ -17,7 +17,7 @@ function Collections() {
     const [newCollectionDescription, setNewCollectionDescription] = useState('');
 
     // URL API для коллекций
-    const API_URL = 'http://localhost:5000/collections';
+    const API_URL = 'http://localhost:5001/collections';
 
     // Функция для загрузки коллекций
     const fetchCollections = async () => {
@@ -25,17 +25,16 @@ function Collections() {
         setError(null);
         try {
             const url = new URL(API_URL);
-            url.searchParams.append('page', currentPage);
-            url.searchParams.append('per_page', collectionsPerPage);
-
+            url.searchParams.append('skip', (currentPage - 1) * collectionsPerPage);
+            url.searchParams.append('limit', collectionsPerPage);
+            // Не фильтруем по user_id, чтобы видеть все коллекции
             const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`Ошибка HTTP: статус ${response.status}`);
             }
-
             const data = await response.json();
-            setCollections(data.collections);
-            setTotalPages(Math.ceil(data.total / collectionsPerPage));
+            setCollections(data);
+            setTotalPages(1); // TODO: если сервер вернет total, пересчитать
         } catch (err) {
             setError(err.message);
         } finally {
@@ -102,9 +101,9 @@ function Collections() {
         <div key={collection.id} className="bg-white rounded-lg shadow-md p-4">
             <div className="flex justify-between items-start">
                 <div>
-                    <h3 className="text-lg font-semibold mb-2">{collection.name}</h3>
-                    <p className="text-gray-600 mb-2">{collection.description}</p>
+                    <h3 className="text-lg font-semibold mb-2">{collection.title}</h3>
                     <p className="text-sm text-gray-500">Книг в коллекции: {collection.book_count}</p>
+                    <p className="text-xs text-gray-400">ID пользователя: {collection.user_id}</p>
                 </div>
                 <div className="flex space-x-2">
                     <button className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
