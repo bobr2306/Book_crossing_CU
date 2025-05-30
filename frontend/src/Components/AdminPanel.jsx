@@ -17,40 +17,47 @@ function AdminPanel() {
     const itemsPerPage = 10;
 
     // URL API для админ-панели
-    const API_URL = 'http://localhost:5000/admin';
+    const API_URL = 'http://localhost:5001/admin';
+
+    // Состояние для модального окна
+    const [modal, setModal] = useState({ open: false, type: '', data: null });
 
     // Функция для загрузки данных
     const fetchData = async (type) => {
         setLoading(true);
         setError(null);
         try {
-            const url = new URL(`${API_URL}/${type}`);
-            url.searchParams.append('page', currentPage);
-            url.searchParams.append('per_page', itemsPerPage);
-
-            const response = await fetch(url);
+            let url;
+            if (type === 'users') {
+                url = new URL('http://localhost:5001/users');
+            } else if (type === 'books') {
+                url = new URL('http://localhost:5001/admin/books');
+            } else if (type === 'exchanges') {
+                url = new URL('http://localhost:5001/admin/transactions');
+            } else {
+                url = new URL('http://localhost:5001/admin/' + type);
+            }
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
             if (!response.ok) {
                 throw new Error(`Ошибка HTTP: статус ${response.status}`);
             }
-
             const data = await response.json();
-            
-            // Обновляем соответствующий список данных
             switch (type) {
                 case 'users':
-                    setUsers(data.items);
+                    setUsers(Array.isArray(data) ? data : []);
                     break;
                 case 'books':
-                    setBooks(data.items);
+                    setBooks(Array.isArray(data) ? data : []);
                     break;
                 case 'exchanges':
-                    setExchanges(data.items);
+                    setExchanges(Array.isArray(data) ? data : []);
                     break;
                 default:
                     break;
             }
-            
-            setTotalPages(Math.ceil(data.total / itemsPerPage));
+            setTotalPages(1);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -84,22 +91,56 @@ function AdminPanel() {
         return pages;
     };
 
+    // Открытие модального окна
+    const openModal = (type, data) => setModal({ open: true, type, data });
+    const closeModal = () => setModal({ open: false, type: '', data: null });
+
+    // Функция для редактирования
+    const handleEdit = async (type, data) => {
+        try {
+            let url = '';
+            let method = 'PUT';
+            let body = {};
+            if (type === 'user') {
+                url = `http://localhost:5001/users/${data.id}`;
+                body = { username: data.username, role: data.role };
+            } else if (type === 'book') {
+                url = `http://localhost:5001/admin/books/${data.id}`;
+                body = { title: data.title, author: data.author, category: data.category, year: data.year };
+            } else if (type === 'exchange') {
+                url = `http://localhost:5001/admin/transactions/${data.id}`;
+                body = { place: data.place, status: data.status };
+            }
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(body)
+            });
+            if (!response.ok) throw new Error('Ошибка редактирования');
+            closeModal();
+            fetchData(type + 's');
+        } catch (err) {
+            alert(err.message);
+        }
+    };
+
     // Функция для отображения карточки пользователя
     const renderUserCard = (user) => (
         <div key={user.id} className="bg-white rounded-lg shadow-md p-4 mb-4">
             <div className="flex justify-between items-start">
                 <div>
                     <h3 className="text-lg font-semibold mb-2">{user.username}</h3>
-                    <p className="text-gray-600">Email: {user.email}</p>
                     <p className="text-gray-600">Роль: {user.role}</p>
-                    <p className="text-gray-600">Статус: {user.status}</p>
                 </div>
                 <div className="flex space-x-2">
-                    <button className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                    <button className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600" onClick={() => openModal('editUser', user)}>
                         Редактировать
                     </button>
-                    <button className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                        Заблокировать
+                    <button className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600" onClick={() => openModal('deleteUser', user)}>
+                        Удалить
                     </button>
                 </div>
             </div>
@@ -114,13 +155,12 @@ function AdminPanel() {
                     <h3 className="text-lg font-semibold mb-2">{book.title}</h3>
                     <p className="text-gray-600">Автор: {book.author}</p>
                     <p className="text-gray-600">Категория: {book.category}</p>
-                    <p className="text-gray-600">Статус: {book.status}</p>
                 </div>
                 <div className="flex space-x-2">
-                    <button className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                    <button className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600" onClick={() => openModal('editBook', book)}>
                         Редактировать
                     </button>
-                    <button className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
+                    <button className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600" onClick={() => openModal('deleteBook', book)}>
                         Удалить
                     </button>
                 </div>
@@ -134,22 +174,128 @@ function AdminPanel() {
             <div className="flex justify-between items-start">
                 <div>
                     <h3 className="text-lg font-semibold mb-2">Обмен #{exchange.id}</h3>
-                    <p className="text-gray-600">Книга: {exchange.book.title}</p>
-                    <p className="text-gray-600">От: {exchange.from_user}</p>
-                    <p className="text-gray-600">Кому: {exchange.to_user}</p>
+                    <p className="text-gray-600">Книга: {exchange.book?.title || '—'}</p>
+                    <p className="text-gray-600">От: {exchange.from_user?.username || exchange.from_user?.id || '—'}</p>
+                    <p className="text-gray-600">Кому: {exchange.to_user?.username || exchange.to_user?.id || '—'}</p>
                     <p className="text-gray-600">Статус: {exchange.status}</p>
                 </div>
                 <div className="flex space-x-2">
-                    <button className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
-                        Просмотр
+                    <button className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600" onClick={() => openModal('editExchange', exchange)}>
+                        Редактировать
                     </button>
-                    <button className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                        Отменить
+                    <button className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600" onClick={() => openModal('deleteExchange', exchange)}>
+                        Удалить
                     </button>
                 </div>
             </div>
         </div>
     );
+
+    // Функции для удаления
+    const handleDeleteUser = async (userId) => {
+        if (!window.confirm('Удалить пользователя?')) return;
+        try {
+            const response = await fetch(`http://localhost:5001/users/${userId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (!response.ok) throw new Error('Ошибка удаления пользователя');
+            fetchData('users');
+        } catch (err) { alert(err.message); }
+    };
+    const handleDeleteBook = async (bookId) => {
+        if (!window.confirm('Удалить книгу?')) return;
+        try {
+            const response = await fetch(`http://localhost:5001/admin/books/${bookId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (!response.ok) throw new Error('Ошибка удаления книги');
+            fetchData('books');
+        } catch (err) { alert(err.message); }
+    };
+    const handleDeleteExchange = async (exchangeId) => {
+        if (!window.confirm('Удалить обмен?')) return;
+        try {
+            const response = await fetch(`http://localhost:5001/admin/transactions/${exchangeId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (!response.ok) throw new Error('Ошибка удаления обмена');
+            fetchData('exchanges');
+        } catch (err) { alert(err.message); }
+    };
+
+    // Модальное окно
+    const renderModal = () => {
+        if (!modal.open) return null;
+        const { type, data } = modal;
+        if (type.startsWith('delete')) {
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded shadow-md w-96">
+                        <h2 className="text-xl font-bold mb-4">Подтвердите удаление</h2>
+                        <p className="mb-4">Вы уверены, что хотите удалить?</p>
+                        <div className="flex justify-end space-x-2">
+                            <button className="bg-gray-300 px-4 py-2 rounded" onClick={closeModal}>Отмена</button>
+                            <button className="bg-red-500 text-white px-4 py-2 rounded" onClick={async () => {
+                                if (type === 'deleteUser') await handleDeleteUser(data.id);
+                                if (type === 'deleteBook') await handleDeleteBook(data.id);
+                                if (type === 'deleteExchange') await handleDeleteExchange(data.id);
+                                closeModal();
+                            }}>Удалить</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        if (type.startsWith('edit')) {
+            let fields = null;
+            let localData = { ...data };
+            const handleFieldChange = (field, value) => {
+                localData[field] = value;
+            };
+            if (type === 'editUser') {
+                fields = (
+                    <>
+                        <input className="w-full border p-2 mb-2" defaultValue={data.username} placeholder="Имя пользователя" onChange={e => handleFieldChange('username', e.target.value)} />
+                        <input className="w-full border p-2 mb-2" defaultValue={data.role} placeholder="Роль" onChange={e => handleFieldChange('role', e.target.value)} />
+                    </>
+                );
+            } else if (type === 'editBook') {
+                fields = (
+                    <>
+                        <input className="w-full border p-2 mb-2" defaultValue={data.title} placeholder="Название" onChange={e => handleFieldChange('title', e.target.value)} />
+                        <input className="w-full border p-2 mb-2" defaultValue={data.author} placeholder="Автор" onChange={e => handleFieldChange('author', e.target.value)} />
+                        <input className="w-full border p-2 mb-2" defaultValue={data.category} placeholder="Категория" onChange={e => handleFieldChange('category', e.target.value)} />
+                        <input className="w-full border p-2 mb-2" defaultValue={data.year} placeholder="Год" type="number" onChange={e => handleFieldChange('year', e.target.value)} />
+                    </>
+                );
+            } else if (type === 'editExchange') {
+                fields = (
+                    <>
+                        <input className="w-full border p-2 mb-2" defaultValue={data.place} placeholder="Место" onChange={e => handleFieldChange('place', e.target.value)} />
+                        <input className="w-full border p-2 mb-2" defaultValue={data.status} placeholder="Статус" onChange={e => handleFieldChange('status', e.target.value)} />
+                    </>
+                );
+            }
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded shadow-md w-96">
+                        <h2 className="text-xl font-bold mb-4">Редактировать</h2>
+                        <form onSubmit={e => { e.preventDefault(); handleEdit(type.replace('edit', '').toLowerCase(), localData); }}>
+                            {fields}
+                            <div className="flex justify-end space-x-2 mt-4">
+                                <button className="bg-gray-300 px-4 py-2 rounded" onClick={closeModal} type="button">Отмена</button>
+                                <button className="bg-blue-600 text-white px-4 py-2 rounded" type="submit">Сохранить</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+        return null;
+    };
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -233,6 +379,7 @@ function AdminPanel() {
                     )}
                 </>
             )}
+            {renderModal()}
         </div>
     );
 }

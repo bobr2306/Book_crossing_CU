@@ -98,6 +98,23 @@ def delete_user(db: Session, user_id: int):
     if not db_user:
         return False
 
+    # Удаляем все книги пользователя
+    books = db.query(models.Book).filter(models.Book.user_id == user_id).all()
+    for book in books:
+        db.delete(book)
+
+    # Удаляем все коллекции пользователя
+    collections = db.query(models.Collection).filter(models.Collection.user_id == user_id).all()
+    for col in collections:
+        db.delete(col)
+
+    # Удаляем все транзакции, где пользователь был отправителем или получателем
+    transactions = db.query(models.Transaction).filter(
+        (models.Transaction.from_user_id == user_id) | (models.Transaction.to_user_id == user_id)
+    ).all()
+    for t in transactions:
+        db.delete(t)
+
     db.delete(db_user)
     db.commit()
     return True
@@ -324,10 +341,19 @@ def get_transactions(
     query = db.query(models.Transaction)
 
     if status:
-        query = query.filter(models.Transaction.status == status)
+        # Поддержка списка статусов через запятую
+        if ',' in status:
+            status_list = [s.strip() for s in status.split(',')]
+            query = query.filter(models.Transaction.status.in_(status_list))
+        else:
+            query = query.filter(models.Transaction.status == status)
     if exclude_status:
         query = query.filter(models.Transaction.status != exclude_status)
     if user_id:
+        try:
+            user_id = int(user_id)
+        except Exception:
+            pass
         query = query.filter(
             (models.Transaction.from_user_id == user_id) |
             (models.Transaction.to_user_id == user_id)

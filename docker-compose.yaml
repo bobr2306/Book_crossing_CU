@@ -43,6 +43,7 @@ services:
     environment:
       - FLASK_ENV=development
       - DATABASE_URL=postgresql://myuser:mypassword@postgres:5432/mydatabase
+      - SECRET_KEY=43939478e74683d1a40eab9772216711c5354d4728e7a6c80dcb084ae5ca4b8f
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,7 +66,16 @@ services:
       - node_modules_frontend:/app/node_modules
     depends_on:
       - backend
-
+  swagger:
+    image: swaggerapi/swagger-ui
+    container_name: swagger_container
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SWAGGER_JSON: /foo/swagger.yaml
+    volumes:
+      - ./swagger.yaml:/foo/swagger.yaml
 volumes:
   postgres_data:
   node_modules_frontend:

@@ -2,42 +2,78 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
-export const useAuth = () => useContext(AuthContext);
+export function AuthProvider({ children }) {
+    const [token, setToken] = useState(() => localStorage.getItem('token'));
+    const [userId, setUserId] = useState(() => localStorage.getItem('userId'));
+    const [role, setRole] = useState(() => localStorage.getItem('role'));
+    const [username, setUsername] = useState(() => localStorage.getItem('username'));
+    
+    const isLoggedIn = !!token;
+    const isAdmin = role === 'admin';
 
-export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
+    const login = (token, userId, role, username) => {
+        setToken(token);
+        setUserId(userId);
+        setRole(role);
+        setUsername(username);
 
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      setIsAuthenticated(true);
-      setUser({
-        id: localStorage.getItem('user_id'),
-        role: localStorage.getItem('role')
-      });
-    }
-  }, []);
+        localStorage.setItem('token', token);
+        localStorage.setItem('userId', userId);
+        localStorage.setItem('role', role);
+        localStorage.setItem('username', username);
+    };
 
-  const login = (token, userId, role) => {
-    localStorage.setItem('access_token', token);
-    localStorage.setItem('user_id', userId);
-    localStorage.setItem('role', role);
-    setIsAuthenticated(true);
-    setUser({ id: userId, role });
-  };
+    const logout = () => {
+        setToken(null);
+        setUserId(null);
+        setRole(null);
+        setUsername(null);
 
-  const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user_id');
-    localStorage.removeItem('role');
-    setIsAuthenticated(false);
-    setUser(null);
-  };
+        localStorage.removeItem('token');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('role');
+        localStorage.removeItem('username');
+    };
 
-  return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}; 
+    const register = async (username, password) => {
+        const response = await fetch('http://localhost:5001/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Ошибка регистрации');
+        }
+        // Можно сразу логинить пользователя, если нужно
+    };
+
+    useEffect(() => {
+        // Если username не установлен, пробуем взять из localStorage
+        if (!username && localStorage.getItem('username')) {
+            setUsername(localStorage.getItem('username'));
+        }
+    }, []);
+
+    return (
+        <AuthContext.Provider
+            value={{
+                token,
+                userId,
+                role,
+                username,
+                isLoggedIn,
+                isAdmin,
+                login,
+                logout,
+                register,
+            }}
+        >
+            {children}
+        </AuthContext.Provider>
+    );
+}
+
+export function useAuth() {
+    return useContext(AuthContext);
+}

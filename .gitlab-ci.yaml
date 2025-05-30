@@ -2,14 +2,14 @@ stages:
   - test
 
 test-python-app:
+  stage: test
+  image: python:3.9
+  tags:
+    - students-buildkit-medium
   before_script:
     - python -m venv venv
     - source venv/bin/activate
     - export PYTHONPATH=$PYTHONPATH:$(pwd)/src
     - pip install -r requirements.txt
-  stage: test
-  image: python:3.9
-  tags:
-    - students-buildkit-medium
   script:
-    - pytest -s -v backend/tests/test_unit_books.py
+    - pytest -s -v backend/tests

@@ -1,5 +1,5 @@
 from flask import request, jsonify
-from src.auth import auth_required
+from src.auth import auth_required, role_required
 from src.database.crud import (
     create_collection,
     get_collections,
@@ -20,8 +20,8 @@ def collections_routes(app):
     @app.route('/collections', methods=['GET'])
     @auth_required
     def get_collections_route():
-        db = next(get_db())
         try:
+            db = get_db()
             limit = int(request.args.get('limit', 100))
             skip = int(request.args.get('skip', 0))
             user_id = request.args.get('user_id', type=int)
@@ -43,8 +43,8 @@ def collections_routes(app):
     @app.route('/collections', methods=['POST'])
     @auth_required
     def create_collection_route():
-        db = next(get_db())
         try:
+            db = get_db()
             data = request.get_json()
             required_fields = ["title", "user_id"]
             if not all(field in data for field in required_fields):
@@ -71,8 +71,8 @@ def collections_routes(app):
     @app.route('/collections/<int:collection_id>', methods=['GET'])
     @auth_required
     def get_collection_route(collection_id):
-        db = next(get_db())
         try:
+            db = get_db()
             collection = get_collection_with_items(db, collection_id)
             if not collection:
                 return jsonify({"error": "Collection not found"}), 404
@@ -98,8 +98,8 @@ def collections_routes(app):
     @app.route('/collections/<int:collection_id>', methods=['PUT'])
     @auth_required
     def update_collection_route(collection_id):
-        db = next(get_db())
         try:
+            db = get_db()
             data = request.get_json()
             update_data = {}
 
@@ -127,8 +127,8 @@ def collections_routes(app):
     @app.route('/collections/<int:collection_id>', methods=['DELETE'])
     @auth_required
     def delete_collection_route(collection_id):
-        db = next(get_db())
         try:
+            db = get_db()
             success = delete_collection(db, collection_id)
             if not success:
                 return jsonify({"error": "Collection not found"}), 404
@@ -140,8 +140,8 @@ def collections_routes(app):
     @app.route('/collections/<int:collection_id>/books', methods=['POST'])
     @auth_required
     def add_books_to_collection_route(collection_id):
-        db = next(get_db())
         try:
+            db = get_db()
             data = request.get_json()
             if "book_ids" not in data:
                 return jsonify({"error": "book_ids is required"}), 400
@@ -162,8 +162,8 @@ def collections_routes(app):
     @app.route('/collections/<int:collection_id>/books/<int:book_id>', methods=['DELETE'])
     @auth_required
     def remove_book_from_collection_route(collection_id, book_id):
-        db = next(get_db())
         try:
+            db = get_db()
             success = remove_book_from_collection(db, collection_id, book_id)
 
             if not success:
@@ -176,3 +176,23 @@ def collections_routes(app):
             })
         except Exception as e:
             return handle_exception(e)
+
+    @app.route('/admin/collections', methods=['GET'])
+    @auth_required
+    @role_required('admin')
+    def admin_get_collections():
+        db = get_db()
+        collections = get_collections(db)
+        return jsonify([
+            {"id": c.id, "title": c.title, "user_id": c.user_id, "book_count": len(c.items)} for c in collections
+        ])
+
+    @app.route('/admin/collections/<int:collection_id>', methods=['DELETE'])
+    @auth_required
+    @role_required('admin')
+    def admin_delete_collection(collection_id):
+        db = get_db()
+        success = delete_collection(db, collection_id)
+        if not success:
+            return jsonify({"error": "Collection not found"}), 404
+        return jsonify({"status": "deleted", "id": collection_id})

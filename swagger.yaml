@@ -1,0 +1,248 @@
+openapi: 3.0.0
+info:
+  title: Book Exchange API
+  description: API для обмена книгами
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5001/
+
+paths:
+  /register:
+    post:
+      tags:
+        - Пользователи
+      summary: Регистрация нового пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  description: Имя пользователя
+                password:
+                  type: string
+                  description: Пароль пользователя
+      responses:
+        '201':
+          description: Пользователь успешно зарегистрирован
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  username:
+                    type: string
+        '400':
+          description: Неверные данные
+
+  /login:
+    post:
+      tags:
+        - Пользователи
+      summary: Вход в систему
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  description: Имя пользователя
+                password:
+                  type: string
+                  description: Пароль пользователя
+      responses:
+        '200':
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                  user_id:
+                    type: integer
+                  role:
+                    type: string
+                  username:
+                    type: string
+        '401':
+          description: Неверные учетные данные
+
+  /books:
+    get:
+      tags:
+        - Книги
+      summary: Получить список книг
+      parameters:
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Фильтр по категории
+        - in: query
+          name: author
+          schema:
+            type: string
+          description: Фильтр по автору
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+          description: Фильтр по ID пользователя
+        - in: query
+          name: skip
+          schema:
+            type: integer
+          description: Количество пропускаемых записей
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: Максимальное количество записей
+      responses:
+        '200':
+          description: Список книг
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    author:
+                      type: string
+                    category:
+                      type: string
+                    user_id:
+                      type: integer
+                    year:
+                      type: integer
+    post:
+      tags:
+        - Книги
+      summary: Создать новую книгу
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - author
+                - category
+              properties:
+                title:
+                  type: string
+                  description: Название книги
+                author:
+                  type: string
+                  description: Автор книги
+                category:
+                  type: string
+                  description: Категория книги
+                year:
+                  type: integer
+                  description: Год издания
+      responses:
+        '201':
+          description: Книга успешно создана
+        '400':
+          description: Неверные данные
+
+  /books/{book_id}:
+    get:
+      tags:
+        - Книги
+      summary: Получить информацию о книге
+      parameters:
+        - in: path
+          name: book_id
+          required: true
+          schema:
+            type: integer
+          description: ID книги
+      responses:
+        '200':
+          description: Информация о книге
+        '404':
+          description: Книга не найдена
+    put:
+      tags:
+        - Книги
+      summary: Обновить информацию о книге
+      parameters:
+        - in: path
+          name: book_id
+          required: true
+          schema:
+            type: integer
+          description: ID книги
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                author:
+                  type: string
+                category:
+                  type: string
+                year:
+                  type: integer
+      responses:
+        '200':
+          description: Книга успешно обновлена
+        '400':
+          description: Неверные данные
+        '404':
+          description: Книга не найдена
+    delete:
+      tags:
+        - Книги
+      summary: Удалить книгу
+      parameters:
+        - in: path
+          name: book_id
+          required: true
+          schema:
+            type: integer
+          description: ID книги
+      responses:
+        '200':
+          description: Книга успешно удалена
+        '404':
+          description: Книга не найдена
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []

@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
 import jwt
 from passlib.context import CryptContext
+import os
 
-# Настройки
-SECRET_KEY = "your-256-bit-secret"  # Replace with a secure 32-byte key
+
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secure-32-byte-key-here")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -19,9 +20,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 # JWT-токены
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_token(token: str):
-    return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise ValueError("Токен истёк")
+    except jwt.InvalidTokenError as e:
+        raise ValueError(f"Недействительный токен: {str(e)}")
